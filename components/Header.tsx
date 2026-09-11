@@ -28,7 +28,9 @@ export function Header({ fetchedAt }: { fetchedAt: string }) {
       <span className="font-display text-2xl font-bold leading-none text-ink sm:text-[26px]">
         Score Center
       </span>
-      <span className="text-xs text-ink-dim">Updated {agoLabel(secondsAgo(fetchedAt))}</span>
+      <span className="text-xs text-ink-dim" suppressHydrationWarning>
+        Updated {agoLabel(secondsAgo(fetchedAt))}
+      </span>
     </header>
   );
 }

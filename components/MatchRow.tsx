@@ -49,7 +49,7 @@ export function MatchRow({
   return (
     <div className="rounded-sm border border-border p-3.5">
       <div className="flex items-center justify-between gap-3 text-[11px] text-ink-dim">
-        <span className="tabular truncate">
+        <span className="tabular truncate" suppressHydrationWarning>
           {isLive ? match.leagueShortName : `${matchTime(match.date)} · ${match.leagueShortName}`}
           {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
         </span>

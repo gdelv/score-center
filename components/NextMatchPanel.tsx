@@ -89,13 +89,16 @@ export function NextMatchPanel({
         )}
       </div>
 
-      <div className="tabular mt-4 text-sm font-semibold text-amber">
+      <div className="tabular mt-4 text-sm font-semibold text-amber" suppressHydrationWarning>
         {isLive ? (
           <LiveBadge detail={match.statusDetail} />
         ) : (
           <>
             {dayLabel(match.date)} · {matchTime(match.date)}
-            <span className="text-ink-dim"> — {until}</span>
+            <span className="text-ink-dim" suppressHydrationWarning>
+              {" "}
+              — {until}
+            </span>
           </>
         )}
       </div>

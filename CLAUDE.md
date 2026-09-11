@@ -163,6 +163,17 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   sheet slides it in — never scattered decoration.
 
 ## Known caveats
+- **`lib/format.ts`'s `dayKey` must stay UTC-based — do not "fix" it back to local time.**
+  It decides which day-bucket (and "Today"/"Tomorrow"/weekday label) a match falls into. Early
+  on this used the runtime's local timezone, which is correct-looking in isolation but breaks
+  hydration in production: the server (Netlify, effectively UTC) and each guest's browser (their
+  own timezone) would bucket the same match differently, so React would see a structurally
+  different tree — a different number of `DateSection`s with different matches in each — between
+  the server-rendered HTML and the client's hydration pass, and throw a hydration error rather
+  than a fixable text-mismatch warning. Keeping the *bucketing* decision on UTC (timezone-
+  independent, so server and client always agree) while `matchTime`'s displayed clock time stays
+  on the guest's local timezone (intentional — see `suppressHydrationWarning` on its render
+  sites) is what makes both work: correct grouping *and* a kickoff time in the guest's own zone.
 - ESPN's endpoint is public but unofficial and undocumented — no SLA, no versioning guarantee.
   If a league's scoreboard starts returning empty or errors, check the URL shape still matches
   by hand before assuming the code is at fault.
@@ -178,6 +189,13 @@ scratch Playwright script against both `npm run dev` and a production `npm run b
 start`: confirmed zero console/hydration errors, league checkboxes filter the feed, sport tabs
 switch the "Next up" hero and list, and the mobile bottom sheet opens/closes — at both a 1280px
 desktop viewport and a 390px phone viewport.
+
+The timezone hydration fix specifically was verified against a production build across five
+`timezoneId` contexts spanning UTC-11 to UTC+14 (`Pacific/Midway` through `Pacific/Kiritimati`,
+~25 hours apart) — zero console/hydration errors in any of them. If this regresses, that's the
+fastest way to reproduce it locally: `npm run build && npm run start`, then drive it with
+Playwright contexts at extreme, far-apart `timezoneId`s rather than just your own machine's zone
+— a same-timezone dev server will never reproduce a server/client timezone mismatch.
 
 ## Deploy
 - `netlify.toml` at project root handles build + plugin config (standard `@netlify/plugin-nextjs`
