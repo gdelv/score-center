@@ -91,12 +91,14 @@ source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 | `components/Header.tsx` | Wordmark + live "updated N ago" indicator |
 | `components/SportTabs.tsx` | All / Soccer / NFL / College segmented control |
 | `components/LeagueFilter.tsx` | Checkbox list grouped by sport, used in both the sidebar and the mobile sheet |
-| `components/FilterSheet.tsx` | Mobile bottom-sheet wrapper around `LeagueFilter` |
+| `components/FilterSheet.tsx` | Mobile bottom-sheet wrapper around `LeagueFilter` + `DisplayToggles` |
+| `components/DisplayToggles.tsx` | Opt-in checkboxes for per-match broadcast/odds info, in both the sidebar and the mobile sheet |
 | `components/NextMatchPanel.tsx` | The single "Next up" hero — soonest match after filtering |
-| `components/DateSection.tsx` / `MatchRow.tsx` | Day-grouped ticker list |
+| `components/DateSection.tsx` / `MatchRow.tsx` | Day-grouped match grid |
 | `components/LiveBadge.tsx` | Pulsing live indicator, reused in the hero and in rows |
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
+| `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
 | `lib/espn.ts`, `lib/leagues.ts`, `lib/format.ts` | Data fetching, league config, date/time formatting |
 
 ## Design rationale
@@ -140,6 +142,20 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   the page's max-width container (real broadcast/stock tickers always do), pauses on hover so a
   guest can actually read one line, and renders nothing at all when there's no live match rather
   than showing an empty strip.
+
+  The seamless-loop trick (scroll a doubled track exactly -50%) only works if that first half is
+  already wider than the viewport — with just 1-2 live matches it isn't, and the bar runs out of
+  content partway across the screen instead of looping cleanly. `LiveTicker.tsx` repeats the
+  match list up to a minimum item count *before* doubling it for the loop, so this holds
+  regardless of how few (or many) matches are live at once.
+
+- **Broadcast and odds are opt-in, off by default** (`DisplayToggles.tsx` /
+  `hooks/useDisplayPrefs.ts`, same `useSyncExternalStore` + `localStorage` pattern as the league
+  filter). Both come straight from ESPN's scoreboard payload — `competition.broadcasts[0].names`
+  and `competition.odds[0]` (DraftKings' spread/moneyline line, when posted) — normalized onto
+  `Match.broadcast` / `Match.odds` in `lib/espn.ts`. They default off per Hick's Law: most guests
+  just want the score, and every card gets denser the moment both are on, so it's a choice the
+  guest opts into rather than clutter everyone pays for by default.
 - **Aesthetic-usability effect + speed as trust** — the first paint is server-rendered with no
   loading spinner; the one entrance animation is skipped on initial load (`AnimatePresence
   initial={false}` in `ScoreCenter.tsx`) so nothing delays what the guest already has. Motion is

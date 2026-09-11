@@ -20,7 +20,15 @@ function timeUntil(iso: string): string {
   return `in ${minutes}m`;
 }
 
-export function NextMatchPanel({ match }: { match: Match }) {
+export function NextMatchPanel({
+  match,
+  showBroadcast,
+  showOdds,
+}: {
+  match: Match;
+  showBroadcast: boolean;
+  showOdds: boolean;
+}) {
   // Ticks periodically so the countdown keeps advancing; the label is derived fresh below.
   const [, tick] = useState(0);
 
@@ -36,7 +44,10 @@ export function NextMatchPanel({ match }: { match: Match }) {
   return (
     <div className="rounded-sm border border-border border-l-[3px] border-l-amber bg-surface px-5 py-5 sm:px-7 sm:py-6">
       <div className="flex items-center justify-between gap-3 text-xs text-ink-dim">
-        <span className="truncate">{match.leagueName}</span>
+        <span className="truncate">
+          {match.leagueName}
+          {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
+        </span>
         {match.venue && <span className="hidden truncate sm:inline">{match.venue}</span>}
       </div>
 
@@ -88,6 +99,13 @@ export function NextMatchPanel({ match }: { match: Match }) {
           </>
         )}
       </div>
+
+      {showOdds && match.odds && (
+        <div className="tabular mt-1.5 text-xs text-ink-dim">
+          {match.odds.details}
+          {match.odds.overUnder != null && ` · O/U ${match.odds.overUnder}`}
+        </div>
+      )}
     </div>
   );
 }

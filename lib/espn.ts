@@ -14,6 +14,14 @@ export interface MatchTeam {
   rank: number | null;
 }
 
+export interface MatchOdds {
+  /** Human-readable summary as ESPN presents it, e.g. "CIN -3.5" or "BOU +150". */
+  details: string;
+  overUnder: number | null;
+  /** Sportsbook this line comes from, e.g. "DraftKings" — shown for attribution. */
+  provider: string | null;
+}
+
 export interface Match {
   id: string;
   sport: LeagueConfig["sport"];
@@ -28,6 +36,7 @@ export interface Match {
   away: MatchTeam;
   venue: string | null;
   broadcast: string | null;
+  odds: MatchOdds | null;
 }
 
 // Raw ESPN scoreboard shapes, narrowed to only the fields we read.
@@ -55,10 +64,17 @@ interface EspnVenue {
   fullName?: string;
 }
 
+interface EspnOdds {
+  details?: string;
+  overUnder?: number;
+  provider?: { displayName?: string };
+}
+
 interface EspnCompetition {
   competitors: EspnCompetitor[];
   venue?: EspnVenue;
   broadcasts?: EspnBroadcast[];
+  odds?: EspnOdds[];
 }
 
 interface EspnStatusType {
@@ -171,6 +187,7 @@ async function fetchLeagueMatches(
         const home = competitors.find((c) => c.homeAway === "home");
         const away = competitors.find((c) => c.homeAway === "away");
         const broadcastNames = competition?.broadcasts?.[0]?.names;
+        const rawOdds = competition?.odds?.[0];
 
         return {
           id: `${league.id}-${e.id}`,
@@ -186,6 +203,13 @@ async function fetchLeagueMatches(
           away: toTeam(away),
           venue: competition?.venue?.fullName ?? null,
           broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
+          odds: rawOdds?.details
+            ? {
+                details: rawOdds.details,
+                overUnder: rawOdds.overUnder ?? null,
+                provider: rawOdds.provider?.displayName ?? null,
+              }
+            : null,
         };
       });
   } catch {

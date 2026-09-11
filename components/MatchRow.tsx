@@ -34,7 +34,15 @@ function TeamLine({
   );
 }
 
-export function MatchRow({ match }: { match: Match }) {
+export function MatchRow({
+  match,
+  showBroadcast,
+  showOdds,
+}: {
+  match: Match;
+  showBroadcast: boolean;
+  showOdds: boolean;
+}) {
   const isLive = match.state === "in";
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
 
@@ -43,6 +51,7 @@ export function MatchRow({ match }: { match: Match }) {
       <div className="flex items-center justify-between gap-3 text-[11px] text-ink-dim">
         <span className="tabular truncate">
           {isLive ? match.leagueShortName : `${matchTime(match.date)} · ${match.leagueShortName}`}
+          {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
         </span>
         {match.venue && <span className="truncate text-right">{match.venue}</span>}
       </div>
@@ -51,6 +60,13 @@ export function MatchRow({ match }: { match: Match }) {
         <TeamLine team={match.away} showScore={isLive} showRankGutter={showRankGutter} />
         <TeamLine team={match.home} showScore={isLive} showRankGutter={showRankGutter} />
       </div>
+
+      {showOdds && match.odds && (
+        <div className="tabular mt-2 text-[11px] text-ink-dim">
+          {match.odds.details}
+          {match.odds.overUnder != null && ` · O/U ${match.odds.overUnder}`}
+        </div>
+      )}
 
       {isLive && (
         <div className="mt-2">

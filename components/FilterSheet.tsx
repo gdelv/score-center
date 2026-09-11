@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LeagueFilter } from "./LeagueFilter";
+import { DisplayToggles } from "./DisplayToggles";
 
 export function FilterSheet({
   selected,
@@ -10,12 +11,20 @@ export function FilterSheet({
   onToggle,
   onSelectAll,
   onSelectNone,
+  showBroadcast,
+  showOdds,
+  onToggleBroadcast,
+  onToggleOdds,
 }: {
   selected: Set<string>;
   totalCount: number;
   onToggle: (id: string) => void;
   onSelectAll: () => void;
   onSelectNone: () => void;
+  showBroadcast: boolean;
+  showOdds: boolean;
+  onToggleBroadcast: () => void;
+  onToggleOdds: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -58,6 +67,12 @@ export function FilterSheet({
                 onToggle={onToggle}
                 onSelectAll={onSelectAll}
                 onSelectNone={onSelectNone}
+              />
+              <DisplayToggles
+                showBroadcast={showBroadcast}
+                showOdds={showOdds}
+                onToggleBroadcast={onToggleBroadcast}
+                onToggleOdds={onToggleOdds}
               />
               <button
                 type="button"

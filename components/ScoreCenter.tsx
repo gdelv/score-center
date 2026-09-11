@@ -6,9 +6,11 @@ import type { Match } from "@/lib/espn";
 import { groupByDay } from "@/lib/format";
 import { LEAGUES, DEFAULT_SELECTED_LEAGUE_IDS } from "@/lib/leagues";
 import { useLeagueFilter } from "@/hooks/useLeagueFilter";
+import { useDisplayPrefs } from "@/hooks/useDisplayPrefs";
 import { Header } from "./Header";
 import { SportTabs, type SportTab } from "./SportTabs";
 import { LeagueFilter } from "./LeagueFilter";
+import { DisplayToggles } from "./DisplayToggles";
 import { FilterSheet } from "./FilterSheet";
 import { LiveTicker } from "./LiveTicker";
 import { NextMatchPanel } from "./NextMatchPanel";
@@ -29,6 +31,7 @@ export function ScoreCenter({
   const [fetchedAt, setFetchedAt] = useState(initialFetchedAt);
   const [tab, setTab] = useState<SportTab>("all");
   const { selected, toggle, selectAll, selectNone } = useLeagueFilter();
+  const { showBroadcast, showOdds, toggleBroadcast, toggleOdds } = useDisplayPrefs();
 
   useEffect(() => {
     const id = setInterval(async () => {
@@ -76,6 +79,10 @@ export function ScoreCenter({
             onToggle={toggle}
             onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
             onSelectNone={selectNone}
+            showBroadcast={showBroadcast}
+            showOdds={showOdds}
+            onToggleBroadcast={toggleBroadcast}
+            onToggleOdds={toggleOdds}
           />
         </div>
 
@@ -86,6 +93,12 @@ export function ScoreCenter({
               onToggle={toggle}
               onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
               onSelectNone={selectNone}
+            />
+            <DisplayToggles
+              showBroadcast={showBroadcast}
+              showOdds={showOdds}
+              onToggleBroadcast={toggleBroadcast}
+              onToggleOdds={toggleOdds}
             />
           </aside>
 
@@ -103,7 +116,11 @@ export function ScoreCenter({
                 {heroMatch && (
                   <div className="max-w-2xl pb-6">
                     <h2 className="mb-1 text-sm font-medium text-ink-dim">Next up</h2>
-                    <NextMatchPanel match={heroMatch} />
+                    <NextMatchPanel
+                      match={heroMatch}
+                      showBroadcast={showBroadcast}
+                      showOdds={showOdds}
+                    />
                   </div>
                 )}
 
@@ -119,7 +136,11 @@ export function ScoreCenter({
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <MatchRow match={match} />
+                          <MatchRow
+                            match={match}
+                            showBroadcast={showBroadcast}
+                            showOdds={showOdds}
+                          />
                         </motion.div>
                       ))}
                     </AnimatePresence>
