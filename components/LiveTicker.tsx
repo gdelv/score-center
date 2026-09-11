@@ -32,7 +32,17 @@ const MIN_ITEMS_BEFORE_DOUBLING = 14;
 
 /** A continuously scrolling strip of every live match, regardless of the league/sport filter below. */
 export function LiveTicker({ matches }: { matches: Match[] }) {
-  if (matches.length === 0) return null;
+  if (matches.length === 0) {
+    // Same bar, same height, no layout jump the moment a match goes live —
+    // just a quiet state instead of a scrolling one.
+    return (
+      <div className="overflow-hidden border-b border-border bg-surface">
+        <div className="flex items-center px-4 py-2 text-[13px] text-ink-dim">
+          No live matches right now
+        </div>
+      </div>
+    );
+  }
 
   const repeatCount = Math.max(1, Math.ceil(MIN_ITEMS_BEFORE_DOUBLING / matches.length));
   const half = Array.from({ length: repeatCount }, () => matches).flat();

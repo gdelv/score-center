@@ -139,9 +139,10 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   regardless of the guest's sport tab or league selection below it — a global pulse of "what's
   happening right now" is a different job than the personalized list, the same way a stock
   ticker shows the whole market rather than just your portfolio. It bleeds full-width outside
-  the page's max-width container (real broadcast/stock tickers always do), pauses on hover so a
-  guest can actually read one line, and renders nothing at all when there's no live match rather
-  than showing an empty strip.
+  the page's max-width container (real broadcast/stock tickers always do), and pauses on hover
+  so a guest can actually read one line. When nothing is live it keeps the same bar at the same
+  height (no layout jump the instant a match goes live) but shows a static "No live matches
+  right now" message instead of the scrolling track.
 
   The seamless-loop trick (scroll a doubled track exactly -50%) only works if that first half is
   already wider than the viewport — with just 1-2 live matches it isn't, and the bar runs out of
