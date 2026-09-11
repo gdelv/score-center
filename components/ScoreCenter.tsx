@@ -59,7 +59,7 @@ export function ScoreCenter({
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
       <Header fetchedAt={fetchedAt} />
 
-      <div className="flex items-center justify-between gap-3 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 py-4">
         <SportTabs active={tab} onChange={setTab} />
         <FilterSheet
           selected={selected}

@@ -3,6 +3,7 @@ import { LEAGUES, type Sport } from "@/lib/leagues";
 const SPORT_LABEL: Record<Sport, string> = {
   nfl: "NFL",
   soccer: "Soccer",
+  cfb: "College Football",
 };
 
 export function LeagueFilter({

@@ -1,4 +1,4 @@
-export type Sport = "soccer" | "nfl";
+export type Sport = "soccer" | "nfl" | "cfb";
 
 export interface LeagueConfig {
   /** Stable id used in filter state + localStorage. */
@@ -10,6 +10,20 @@ export interface LeagueConfig {
   shortName: string;
   /** Accent used for the league pill + card edge. Kept subtle, not per-team. */
   accent: string;
+  /**
+   * College football alone runs ~80 games on a single Saturday — far more
+   * than every other league combined. Restricting it to games involving an
+   * AP Top 25 team keeps the board readable instead of drowning it.
+   */
+  filterToRankedTeams?: boolean;
+  /**
+   * Overrides the global lookahead window for this league. College
+   * football's full scoreboard payload for a 14-day window runs ~3.5MB —
+   * over Next.js's 2MB fetch-cache limit, so it stops being cached at all.
+   * A 7-day window (one weekend's slate) stays under that and is still
+   * everything a "what's coming up" board needs.
+   */
+  maxWindowDays?: number;
 }
 
 export const LEAGUES: LeagueConfig[] = [
@@ -20,6 +34,16 @@ export const LEAGUES: LeagueConfig[] = [
     name: "NFL",
     shortName: "NFL",
     accent: "#D62839",
+  },
+  {
+    id: "college-football",
+    sport: "cfb",
+    espnPath: "football/college-football",
+    name: "College Football",
+    shortName: "NCAAF",
+    accent: "#6B1E23",
+    filterToRankedTeams: true,
+    maxWindowDays: 7,
   },
   {
     id: "eng.1",

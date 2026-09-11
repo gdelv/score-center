@@ -6,6 +6,7 @@ const TABS: { id: SportTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "soccer", label: "Soccer" },
   { id: "nfl", label: "NFL" },
+  { id: "cfb", label: "College" },
 ];
 
 export function SportTabs({

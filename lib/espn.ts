@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { LEAGUES, type LeagueConfig } from "./leagues";
 
 export type MatchState = "pre" | "in" | "post";
@@ -76,6 +77,44 @@ interface EspnScoreboardResponse {
   events?: EspnEvent[];
 }
 
+interface EspnRankEntry {
+  team: { id: string };
+}
+
+interface EspnRankingsPoll {
+  type: string;
+  ranks: EspnRankEntry[];
+}
+
+interface EspnRankingsResponse {
+  rankings?: EspnRankingsPoll[];
+}
+
+/**
+ * Team IDs currently in the AP Top 25. Used to cut college football down to
+ * a readable slate — see `LeagueConfig.filterToRankedTeams`. Fails closed
+ * (empty set) on any error, since showing nothing beats silently reverting
+ * to the full 80-games-a-Saturday slate.
+ */
+async function fetchRankedTeamIds(): Promise<Set<string>> {
+  try {
+    // Caching happens one level up, around the small normalized result in
+    // fetchAllUpcomingMatches — not here, and deliberately not via `fetch`'s
+    // own `next.revalidate`, which tries to store the raw response verbatim
+    // (see fetchLeagueMatches below for why that matters).
+    const res = await fetch(
+      "https://site.api.espn.com/apis/site/v2/sports/football/college-football/rankings",
+    );
+    if (!res.ok) return new Set();
+
+    const data: EspnRankingsResponse = await res.json();
+    const apPoll = data.rankings?.find((p) => p.type === "ap");
+    return new Set(apPoll?.ranks.map((r) => r.team.id) ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
 function toTeam(c: EspnCompetitor | undefined): MatchTeam {
   if (!c) {
     return {
@@ -106,10 +145,13 @@ async function fetchLeagueMatches(
   const url = `https://site.api.espn.com/apis/site/v2/sports/${league.espnPath}/scoreboard?dates=${fromYmd}-${toYmd}`;
 
   try {
-    const res = await fetch(url, {
-      // Shared across all visitors; short enough to stay fresh, long enough to stay fast.
-      next: { revalidate: 120 },
-    });
+    // Deliberately uncached here: ESPN's raw scoreboard payload for a busy
+    // league (college football especially) can run several MB, over
+    // Next.js's 2MB fetch-cache entry limit — `next.revalidate` would just
+    // fail to cache it and log a warning on every request. We cache the
+    // small, normalized result instead, one level up in
+    // fetchAllUpcomingMatches.
+    const res = await fetch(url);
     if (!res.ok) return [];
 
     const data: EspnScoreboardResponse = await res.json();
@@ -152,17 +194,44 @@ function formatYmd(d: Date): string {
   ).padStart(2, "0")}`;
 }
 
-/** Fetches every configured league in parallel for the next `days` days (incl. today). */
-export async function fetchAllUpcomingMatches(days = 14): Promise<Match[]> {
+async function fetchAllUpcomingMatchesUncached(days: number): Promise<Match[]> {
   const today = new Date();
-  const end = new Date(today);
-  end.setUTCDate(end.getUTCDate() + days);
   const fromYmd = formatYmd(today);
-  const toYmd = formatYmd(end);
 
-  const results = await Promise.all(
-    LEAGUES.map((league) => fetchLeagueMatches(league, fromYmd, toYmd)),
-  );
+  function windowEndYmd(league: LeagueConfig): string {
+    const end = new Date(today);
+    end.setUTCDate(end.getUTCDate() + Math.min(days, league.maxWindowDays ?? days));
+    return formatYmd(end);
+  }
+
+  const [rankedTeamIds, ...leagueResults] = await Promise.all([
+    fetchRankedTeamIds(),
+    ...LEAGUES.map((league) => fetchLeagueMatches(league, fromYmd, windowEndYmd(league))),
+  ]);
+
+  const results = leagueResults.map((matches, i) => {
+    const league = LEAGUES[i];
+    if (!league.filterToRankedTeams) return matches;
+    return matches.filter(
+      (m) => rankedTeamIds.has(m.home.id) || rankedTeamIds.has(m.away.id),
+    );
+  });
 
   return results.flat().sort((a, b) => a.date.localeCompare(b.date));
+}
+
+const cachedFetchAllUpcomingMatches = unstable_cache(
+  fetchAllUpcomingMatchesUncached,
+  ["score-center-upcoming-matches"],
+  { revalidate: 120 },
+);
+
+/**
+ * Fetches every configured league in parallel for the next `days` days
+ * (incl. today), and caches the resulting — small, normalized — match list
+ * for 120s. Caching happens here rather than on the individual upstream
+ * fetches: see fetchLeagueMatches for why.
+ */
+export function fetchAllUpcomingMatches(days = 14): Promise<Match[]> {
+  return cachedFetchAllUpcomingMatches(days);
 }

@@ -9,10 +9,10 @@ any code. Heed deprecation notices.
 # Score Center — Developer Guide
 
 ## What this is
-A guest-only board of every upcoming soccer and NFL match. No accounts, no login — visitors
-pick which leagues they want to see and the choice is remembered on that device. Not tied to a
-specific paying client; it's a standalone product living alongside the other projects in
-`businessProjects/`.
+A guest-only board of every upcoming soccer, NFL, and ranked college football match. No
+accounts, no login — visitors pick which leagues they want to see and the choice is remembered
+on that device. Not tied to a specific paying client; it's a standalone product living alongside
+the other projects in `businessProjects/`.
 
 ## Stack
 - **Framework:** Next.js 16, App Router, TypeScript strict
@@ -44,27 +44,47 @@ shape into `Match`, and sorts by kickoff time. A single league's request failing
 timeout, schema change) returns `[]` for that league rather than breaking the page — this is an
 unofficial API with no uptime guarantee, so treat every call site as best-effort.
 
-**Caching:** each ESPN fetch carries `next: { revalidate: 120 }`. `app/page.tsx` calls it
-server-side for the first paint; `components/ScoreCenter.tsx` polls `GET /api/matches` every
-90 seconds client-side to keep the board current without a page reload.
+**Everything is live — there is no data to add by hand, ever.** No match, score, date, or team
+is hardcoded anywhere in this codebase. Every page load and every 90-second poll re-derives the
+board from ESPN in real time. The season rolling over, a game getting rescheduled, a score
+changing mid-match — all of it just shows up on the next fetch. The only thing that would ever
+need a manual code change is adding a *new league* (see below) — never refreshing data for an
+existing one.
+
+**Caching:** the raw upstream fetches in `fetchLeagueMatches`/`fetchRankedTeamIds` are
+deliberately *uncached* (no `next.revalidate`) — ESPN's raw payload for a busy league (college
+football especially) can run several MB, over Next.js's 2MB fetch-cache entry limit, so trying
+to cache it there just fails silently on every request. Instead, `fetchAllUpcomingMatches` — the
+small, already-normalized result — is wrapped in `unstable_cache` with a 120s revalidate. That's
+the one place caching happens. `app/page.tsx` calls it server-side for the first paint;
+`components/ScoreCenter.tsx` polls `GET /api/matches` every 90 seconds client-side to keep the
+board current without a page reload.
 
 **Adding a league:** add an entry to `LEAGUES` in `lib/leagues.ts` with its ESPN path segment
-(soccer slugs look like `eng.1`, `esp.1`, `uefa.champions`; find new ones by hitting
-`site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard` and checking for a 200), a
+(soccer slugs look like `eng.1`, `esp.1`, `uefa.champions`; football is `football/nfl` or
+`football/college-football`; find new ones by hitting
+`site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/scoreboard` and checking for a 200), a
 `shortName` for the compact list label, and an `accent` hex used only for that league's filter
 checkbox tint. No other code changes needed — the filter list, tabs, and match feed all derive
-from this array.
+from this array. Two optional per-league escape hatches exist for leagues with unusual volume
+(see `college-football`'s entry for both in use):
+- `maxWindowDays` — caps the lookahead window below the global 14 days, for leagues whose raw
+  payload would otherwise blow past the 2MB-per-fetch-entry ceiling mentioned above.
+- `filterToRankedTeams` — restricts the league to games with at least one AP Top 25 team, via
+  `fetchRankedTeamIds()`. College football runs ~80 games on a single Saturday — dumping all of
+  them in unfiltered would swamp every other league in the day-grouped list. Fails closed
+  (shows nothing rather than the full unfiltered slate) if the rankings fetch itself fails.
 
 **If ESPN changes or removes an endpoint:** `lib/espn.ts` is the only file that talks to the
 network; everything downstream consumes the normalized `Match` type, so a replacement data
-source only needs a new implementation of `fetchAllUpcomingMatches()`.
+source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 
 ## Component map
 | Component | Purpose |
 |-----------|---------|
 | `components/ScoreCenter.tsx` | Client orchestrator — polling, sport-tab state, league-filter state, empty states |
 | `components/Header.tsx` | Wordmark + live "updated N ago" indicator |
-| `components/SportTabs.tsx` | All / Soccer / NFL segmented control |
+| `components/SportTabs.tsx` | All / Soccer / NFL / College segmented control |
 | `components/LeagueFilter.tsx` | Checkbox list grouped by sport, used in both the sidebar and the mobile sheet |
 | `components/FilterSheet.tsx` | Mobile bottom-sheet wrapper around `LeagueFilter` |
 | `components/NextMatchPanel.tsx` | The single "Next up" hero — soonest match after filtering |
