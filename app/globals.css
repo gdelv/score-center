@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #10141c;
+  --surface: #171c27;
+  --surface-raised: #1c222f;
+  --border: #262d3a;
+  --ink: #edeff3;
+  --ink-dim: #8b93a3;
+  --amber: #f5a623;
+  --amber-ink: #2a1a02;
+  --turf: #35c25e;
+  --focus: #f5a623;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f5f2;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --border: #dee1e6;
+    --ink: #14171d;
+    --ink-dim: #5b6270;
+    --amber: #c97a00;
+    --amber-ink: #ffffff;
+    --turf: #1e9a47;
+    --focus: #c97a00;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-amber: var(--amber);
+  --color-amber-ink: var(--amber-ink);
+  --color-turf: var(--turf);
+  --font-display: var(--font-big-shoulders);
+  --font-body: var(--font-plex);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-plex), system-ui, sans-serif;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Custom properties hold their literal string value, unlike a `color` value
+ * set directly via `style`, which the browser normalizes to rgb() before
+ * React hydrates — that mismatch between the server-rendered hex string and
+ * the post-normalization DOM value is what trips React's hydration warning.
+ */
+.league-checkbox {
+  accent-color: var(--league-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
