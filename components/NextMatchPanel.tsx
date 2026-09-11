@@ -31,6 +31,7 @@ export function NextMatchPanel({ match }: { match: Match }) {
 
   const until = timeUntil(match.date);
   const isLive = match.state === "in";
+  const showRankGutter = Boolean(match.home.rank || match.away.rank);
 
   return (
     <div className="rounded-sm border border-border border-l-[3px] border-l-amber bg-surface px-5 py-5 sm:px-7 sm:py-6">
@@ -40,6 +41,11 @@ export function NextMatchPanel({ match }: { match: Match }) {
       </div>
 
       <div className="mt-3 flex items-center gap-3">
+        {showRankGutter && (
+          <span className="tabular w-7 shrink-0 text-right text-base font-semibold text-ink-dim">
+            {match.away.rank ? `#${match.away.rank}` : ""}
+          </span>
+        )}
         <TeamLogo src={match.away.logo} alt={match.away.shortName} size={30} />
         <span className="truncate font-display text-2xl font-bold leading-none text-ink sm:text-3xl">
           {match.away.name}
@@ -50,8 +56,17 @@ export function NextMatchPanel({ match }: { match: Match }) {
           </span>
         )}
       </div>
-      <div className="my-1.5 pl-[42px] text-sm font-medium text-ink-dim sm:pl-[46px]">at</div>
+      <div className="my-1.5 flex items-center gap-3 text-sm font-medium text-ink-dim">
+        {showRankGutter && <span className="w-7 shrink-0" aria-hidden />}
+        <span className="w-[30px] shrink-0" aria-hidden />
+        <span>at</span>
+      </div>
       <div className="flex items-center gap-3">
+        {showRankGutter && (
+          <span className="tabular w-7 shrink-0 text-right text-base font-semibold text-ink-dim">
+            {match.home.rank ? `#${match.home.rank}` : ""}
+          </span>
+        )}
         <TeamLogo src={match.home.logo} alt={match.home.shortName} size={30} />
         <span className="truncate font-display text-2xl font-bold leading-none text-ink sm:text-3xl">
           {match.home.name}

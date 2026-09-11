@@ -71,9 +71,13 @@ from this array. Two optional per-league escape hatches exist for leagues with u
 - `maxWindowDays` — caps the lookahead window below the global 14 days, for leagues whose raw
   payload would otherwise blow past the 2MB-per-fetch-entry ceiling mentioned above.
 - `filterToRankedTeams` — restricts the league to games with at least one AP Top 25 team, via
-  `fetchRankedTeamIds()`. College football runs ~80 games on a single Saturday — dumping all of
-  them in unfiltered would swamp every other league in the day-grouped list. Fails closed
-  (shows nothing rather than the full unfiltered slate) if the rankings fetch itself fails.
+  `fetchRankedTeams()`, and labels each ranked team with its current number (`MatchTeam.rank`,
+  rendered as `#N` in `MatchRow`/`NextMatchPanel`). College football runs ~80 games on a single
+  Saturday — dumping all of them in unfiltered would swamp every other league in the day-grouped
+  list. Fails closed (shows nothing rather than the full unfiltered slate) if the rankings fetch
+  itself fails. Rank lookups are scoped per-league (only applied when this flag is set) rather
+  than globally, since ESPN's numeric team IDs aren't unique across sports — an NFL or soccer
+  team's ID could coincidentally match a ranked college team's ID.
 
 **If ESPN changes or removes an endpoint:** `lib/espn.ts` is the only file that talks to the
 network; everything downstream consumes the normalized `Match` type, so a replacement data

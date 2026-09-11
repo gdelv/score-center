@@ -10,6 +10,8 @@ export interface MatchTeam {
   logo: string | null;
   score: string | null;
   winner: boolean;
+  /** AP Top 25 rank (1-25), only ever set for `filterToRankedTeams` leagues. */
+  rank: number | null;
 }
 
 export interface Match {
@@ -78,6 +80,7 @@ interface EspnScoreboardResponse {
 }
 
 interface EspnRankEntry {
+  current: number;
   team: { id: string };
 }
 
@@ -91,12 +94,13 @@ interface EspnRankingsResponse {
 }
 
 /**
- * Team IDs currently in the AP Top 25. Used to cut college football down to
- * a readable slate — see `LeagueConfig.filterToRankedTeams`. Fails closed
- * (empty set) on any error, since showing nothing beats silently reverting
- * to the full 80-games-a-Saturday slate.
+ * Team id -> current AP Top 25 rank (1-25). Used to cut college football
+ * down to a readable slate and to label each ranked team with its number —
+ * see `LeagueConfig.filterToRankedTeams`. Fails closed (empty map) on any
+ * error, since showing nothing beats silently reverting to the full
+ * 80-games-a-Saturday slate.
  */
-async function fetchRankedTeamIds(): Promise<Set<string>> {
+async function fetchRankedTeams(): Promise<Map<string, number>> {
   try {
     // Caching happens one level up, around the small normalized result in
     // fetchAllUpcomingMatches — not here, and deliberately not via `fetch`'s
@@ -105,13 +109,13 @@ async function fetchRankedTeamIds(): Promise<Set<string>> {
     const res = await fetch(
       "https://site.api.espn.com/apis/site/v2/sports/football/college-football/rankings",
     );
-    if (!res.ok) return new Set();
+    if (!res.ok) return new Map();
 
     const data: EspnRankingsResponse = await res.json();
     const apPoll = data.rankings?.find((p) => p.type === "ap");
-    return new Set(apPoll?.ranks.map((r) => r.team.id) ?? []);
+    return new Map(apPoll?.ranks.map((r) => [r.team.id, r.current]) ?? []);
   } catch {
-    return new Set();
+    return new Map();
   }
 }
 
@@ -124,6 +128,7 @@ function toTeam(c: EspnCompetitor | undefined): MatchTeam {
       logo: null,
       score: null,
       winner: false,
+      rank: null,
     };
   }
   return {
@@ -133,6 +138,7 @@ function toTeam(c: EspnCompetitor | undefined): MatchTeam {
     logo: c.team.logo ?? null,
     score: c.score ?? null,
     winner: Boolean(c.winner),
+    rank: null,
   };
 }
 
@@ -204,17 +210,22 @@ async function fetchAllUpcomingMatchesUncached(days: number): Promise<Match[]> {
     return formatYmd(end);
   }
 
-  const [rankedTeamIds, ...leagueResults] = await Promise.all([
-    fetchRankedTeamIds(),
+  const [rankedTeams, ...leagueResults] = await Promise.all([
+    fetchRankedTeams(),
     ...LEAGUES.map((league) => fetchLeagueMatches(league, fromYmd, windowEndYmd(league))),
   ]);
 
   const results = leagueResults.map((matches, i) => {
     const league = LEAGUES[i];
     if (!league.filterToRankedTeams) return matches;
-    return matches.filter(
-      (m) => rankedTeamIds.has(m.home.id) || rankedTeamIds.has(m.away.id),
-    );
+
+    return matches
+      .filter((m) => rankedTeams.has(m.home.id) || rankedTeams.has(m.away.id))
+      .map((m) => ({
+        ...m,
+        home: { ...m.home, rank: rankedTeams.get(m.home.id) ?? null },
+        away: { ...m.away, rank: rankedTeams.get(m.away.id) ?? null },
+      }));
   });
 
   return results.flat().sort((a, b) => a.date.localeCompare(b.date));

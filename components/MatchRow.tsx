@@ -3,9 +3,22 @@ import { matchTime } from "@/lib/format";
 import { TeamLogo } from "./TeamLogo";
 import { LiveBadge } from "./LiveBadge";
 
-function TeamLine({ team, showScore }: { team: MatchTeam; showScore: boolean }) {
+function TeamLine({
+  team,
+  showScore,
+  showRankGutter,
+}: {
+  team: MatchTeam;
+  showScore: boolean;
+  showRankGutter: boolean;
+}) {
   return (
-    <div className="flex items-center gap-2.5 min-w-0">
+    <div className="flex items-center gap-2 min-w-0">
+      {showRankGutter && (
+        <span className="tabular w-5 shrink-0 text-right text-[12px] font-semibold text-ink-dim">
+          {team.rank ? `#${team.rank}` : ""}
+        </span>
+      )}
       <TeamLogo src={team.logo} alt={team.shortName} size={22} />
       <span
         className={`truncate text-[15px] ${team.winner ? "font-semibold text-ink" : "font-medium text-ink"}`}
@@ -23,6 +36,7 @@ function TeamLine({ team, showScore }: { team: MatchTeam; showScore: boolean }) 
 
 export function MatchRow({ match }: { match: Match }) {
   const isLive = match.state === "in";
+  const showRankGutter = Boolean(match.home.rank || match.away.rank);
 
   return (
     <div className="flex items-start gap-4 py-3.5 border-b border-border last:border-b-0">
@@ -34,8 +48,8 @@ export function MatchRow({ match }: { match: Match }) {
       </div>
 
       <div className="min-w-0 flex-1 space-y-1.5">
-        <TeamLine team={match.away} showScore={isLive} />
-        <TeamLine team={match.home} showScore={isLive} />
+        <TeamLine team={match.away} showScore={isLive} showRankGutter={showRankGutter} />
+        <TeamLine team={match.home} showScore={isLive} showRankGutter={showRankGutter} />
         {isLive && (
           <div className="pt-0.5">
             <LiveBadge detail={match.statusDetail} />
