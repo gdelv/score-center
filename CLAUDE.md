@@ -110,9 +110,13 @@ template. See `app/globals.css` for the token values.
 - **Type:** Big Shoulders (modeled on collegiate athletics signage) for the wordmark, the hero
   match, and date headers; IBM Plex Sans for body/list text. Scores and times use
   `font-variant-numeric: tabular-nums` (the `.tabular` class) so digits stay aligned.
-- **Layout:** a left-aligned, hairline-divided ticker list — not a rounded-card grid — grouped
-  by day, because that's what an actual scoreboard looks like. One deliberate bold moment (the
-  amber-bezel "Next up" panel); everything else stays quiet.
+- **Layout:** left-aligned match cards in a responsive grid (1 column on mobile, 2 from `lg:`,
+  3 from `xl:` — see `DateSection.tsx`), grouped under a bold, full-width-ruled day heading so
+  each day reads as its own chapter rather than a divider line in a continuous list. The outer
+  page runs up to 1440px so a wide desktop actually uses its width instead of one narrow column
+  with empty margins either side; the "Next up" hero stays capped at a narrower width on its own
+  so it reads as a focused moment even when the grid below is wide. One deliberate bold moment
+  (the amber-bezel hero panel); everything else stays quiet.
 
 Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
 - **Hick's Law** — sport tabs default to "All"; the league filter defaults to everything

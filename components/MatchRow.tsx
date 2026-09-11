@@ -39,27 +39,22 @@ export function MatchRow({ match }: { match: Match }) {
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
 
   return (
-    <div className="flex items-start gap-4 py-3.5 border-b border-border last:border-b-0">
-      <div className="w-16 shrink-0 pt-0.5 text-right">
-        {!isLive && (
-          <div className="tabular text-sm font-medium text-ink">{matchTime(match.date)}</div>
-        )}
-        <div className="mt-0.5 text-[11px] text-ink-dim">{match.leagueShortName}</div>
+    <div className="rounded-sm border border-border p-3.5">
+      <div className="flex items-center justify-between gap-3 text-[11px] text-ink-dim">
+        <span className="tabular truncate">
+          {isLive ? match.leagueShortName : `${matchTime(match.date)} · ${match.leagueShortName}`}
+        </span>
+        {match.venue && <span className="truncate text-right">{match.venue}</span>}
       </div>
 
-      <div className="min-w-0 flex-1 space-y-1.5">
+      <div className="mt-2 space-y-1.5">
         <TeamLine team={match.away} showScore={isLive} showRankGutter={showRankGutter} />
         <TeamLine team={match.home} showScore={isLive} showRankGutter={showRankGutter} />
-        {isLive && (
-          <div className="pt-0.5">
-            <LiveBadge detail={match.statusDetail} />
-          </div>
-        )}
       </div>
 
-      {match.venue && (
-        <div className="hidden max-w-[160px] shrink-0 truncate pt-0.5 text-right text-xs text-ink-dim sm:block">
-          {match.venue}
+      {isLive && (
+        <div className="mt-2">
+          <LiveBadge detail={match.statusDetail} />
         </div>
       )}
     </div>

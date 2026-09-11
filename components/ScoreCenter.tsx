@@ -56,7 +56,7 @@ export function ScoreCenter({
   const groups = useMemo(() => groupByDay(restMatches), [restMatches]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+    <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6">
       <Header fetchedAt={fetchedAt} />
 
       <div className="flex flex-wrap items-center justify-between gap-3 py-4">
@@ -80,7 +80,7 @@ export function ScoreCenter({
           />
         </aside>
 
-        <main className="min-w-0 max-w-2xl flex-1">
+        <main className="min-w-0 flex-1">
           {selected.size === 0 ? (
             <EmptyState
               message="Nothing to show. Turn on a league to see what's coming up."
@@ -92,7 +92,7 @@ export function ScoreCenter({
           ) : (
             <>
               {heroMatch && (
-                <div className="pb-6">
+                <div className="max-w-2xl pb-6">
                   <h2 className="mb-1 text-sm font-medium text-ink-dim">Next up</h2>
                   <NextMatchPanel match={heroMatch} />
                 </div>
