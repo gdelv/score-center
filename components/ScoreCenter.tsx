@@ -10,6 +10,7 @@ import { Header } from "./Header";
 import { SportTabs, type SportTab } from "./SportTabs";
 import { LeagueFilter } from "./LeagueFilter";
 import { FilterSheet } from "./FilterSheet";
+import { LiveTicker } from "./LiveTicker";
 import { NextMatchPanel } from "./NextMatchPanel";
 import { DateSection } from "./DateSection";
 import { MatchRow } from "./MatchRow";
@@ -44,6 +45,11 @@ export function ScoreCenter({
     return () => clearInterval(id);
   }, []);
 
+  // Deliberately unfiltered by league/sport — the ticker is a pulse of
+  // everything live right now, independent of what the guest has chosen
+  // to follow below it.
+  const liveMatches = useMemo(() => matches.filter((m) => m.state === "in"), [matches]);
+
   const filteredMatches = useMemo(
     () =>
       matches.filter(
@@ -56,70 +62,74 @@ export function ScoreCenter({
   const groups = useMemo(() => groupByDay(restMatches), [restMatches]);
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6">
-      <Header fetchedAt={fetchedAt} />
+    <>
+      <LiveTicker matches={liveMatches} />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 py-4">
-        <SportTabs active={tab} onChange={setTab} />
-        <FilterSheet
-          selected={selected}
-          totalCount={LEAGUES.length}
-          onToggle={toggle}
-          onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
-          onSelectNone={selectNone}
-        />
-      </div>
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6">
+        <Header fetchedAt={fetchedAt} />
 
-      <div className="flex gap-10 pb-16">
-        <aside className="hidden w-56 shrink-0 lg:block">
-          <LeagueFilter
+        <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <SportTabs active={tab} onChange={setTab} />
+          <FilterSheet
             selected={selected}
+            totalCount={LEAGUES.length}
             onToggle={toggle}
             onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
             onSelectNone={selectNone}
           />
-        </aside>
+        </div>
 
-        <main className="min-w-0 flex-1">
-          {selected.size === 0 ? (
-            <EmptyState
-              message="Nothing to show. Turn on a league to see what's coming up."
-              actionLabel="Show all leagues"
-              onAction={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
+        <div className="flex gap-10 pb-16">
+          <aside className="hidden w-56 shrink-0 lg:block">
+            <LeagueFilter
+              selected={selected}
+              onToggle={toggle}
+              onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
+              onSelectNone={selectNone}
             />
-          ) : filteredMatches.length === 0 ? (
-            <EmptyState message="No matches in the next two weeks for these leagues." />
-          ) : (
-            <>
-              {heroMatch && (
-                <div className="max-w-2xl pb-6">
-                  <h2 className="mb-1 text-sm font-medium text-ink-dim">Next up</h2>
-                  <NextMatchPanel match={heroMatch} />
-                </div>
-              )}
+          </aside>
 
-              {groups.map((group) => (
-                <DateSection key={group.key} label={group.label}>
-                  <AnimatePresence initial={false}>
-                    {group.matches.map((match) => (
-                      <motion.div
-                        key={match.id}
-                        layout
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <MatchRow match={match} />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </DateSection>
-              ))}
-            </>
-          )}
-        </main>
+          <main className="min-w-0 flex-1">
+            {selected.size === 0 ? (
+              <EmptyState
+                message="Nothing to show. Turn on a league to see what's coming up."
+                actionLabel="Show all leagues"
+                onAction={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
+              />
+            ) : filteredMatches.length === 0 ? (
+              <EmptyState message="No matches in the next two weeks for these leagues." />
+            ) : (
+              <>
+                {heroMatch && (
+                  <div className="max-w-2xl pb-6">
+                    <h2 className="mb-1 text-sm font-medium text-ink-dim">Next up</h2>
+                    <NextMatchPanel match={heroMatch} />
+                  </div>
+                )}
+
+                {groups.map((group) => (
+                  <DateSection key={group.key} label={group.label}>
+                    <AnimatePresence initial={false}>
+                      {group.matches.map((match) => (
+                        <motion.div
+                          key={match.id}
+                          layout
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <MatchRow match={match} />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </DateSection>
+                ))}
+              </>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

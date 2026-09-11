@@ -70,6 +70,23 @@ body {
   accent-color: var(--league-accent);
 }
 
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* The track holds two back-to-back copies of the same items, so
+       scrolling exactly half its width loops seamlessly into itself. */
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  animation-name: ticker-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

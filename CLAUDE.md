@@ -87,6 +87,7 @@ source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 | Component | Purpose |
 |-----------|---------|
 | `components/ScoreCenter.tsx` | Client orchestrator — polling, sport-tab state, league-filter state, empty states |
+| `components/LiveTicker.tsx` | Full-bleed scrolling strip of every currently-live match — unfiltered by league/sport, see rationale below |
 | `components/Header.tsx` | Wordmark + live "updated N ago" indicator |
 | `components/SportTabs.tsx` | All / Soccer / NFL / College segmented control |
 | `components/LeagueFilter.tsx` | Checkbox list grouped by sport, used in both the sidebar and the mobile sheet |
@@ -132,6 +133,13 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   names) instead of one flat list.
 - **Von Restorff effect (isolation)** — live matches get the one non-amber color (turf green)
   and a pulsing dot so they stand out from merely-scheduled ones.
+- **`LiveTicker` is intentionally unfiltered.** It shows every live match across every league,
+  regardless of the guest's sport tab or league selection below it — a global pulse of "what's
+  happening right now" is a different job than the personalized list, the same way a stock
+  ticker shows the whole market rather than just your portfolio. It bleeds full-width outside
+  the page's max-width container (real broadcast/stock tickers always do), pauses on hover so a
+  guest can actually read one line, and renders nothing at all when there's no live match rather
+  than showing an empty strip.
 - **Aesthetic-usability effect + speed as trust** — the first paint is server-rendered with no
   loading spinner; the one entrance animation is skipped on initial load (`AnimatePresence
   initial={false}` in `ScoreCenter.tsx`) so nothing delays what the guest already has. Motion is
