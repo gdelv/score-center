@@ -144,16 +144,25 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   do), and pauses on hover so a guest can actually read one line.
 
   Falls back in order: **live matches** (pulsing dot, "AWAY 3 – 2 HOME", elapsed time) →
-  **today's finished games**, if nothing's live (no dot — that signal is reserved for genuinely
+  **recently finished games**, if nothing's live (no dot — that signal is reserved for genuinely
   live — broadcast-ticker style: `"NCAAF | UF 33 @ FSU 32 F | LSU 35 @ Alabama 34 F"`) → a static
-  "No games yet today" message, only if neither exists (e.g. before anything's kicked off). Same
+  "No games right now" message, only if neither exists (e.g. before anything's kicked off). Same
   bar, same height in every state — no layout jump as it moves between them.
 
   This is why `fetchLeagueMatches` in `lib/espn.ts` no longer filters out `state === "post"`
   events — the upcoming-matches board still excludes them itself (`ScoreCenter.tsx`'s
-  `filteredMatches` filters `state !== "post"`), but the ticker's finished-today fallback needs
-  them. Safe to include unconditionally because the fetch window always starts at today, so a
-  finished game in the result is necessarily from today, never history.
+  `filteredMatches` filters `state !== "post"`), but the ticker's finished-game fallback needs
+  them, including last night's, until something newer goes live.
+
+  **The fetch window in `fetchAllUpcomingMatches` starts a day *before* today, not at today** —
+  this is deliberately not the same "today" as `dayKey`'s UTC bucketing. UTC rolls over hours
+  before local midnight for anyone west of it: a 7pm ET kickoff is already 11pm UTC that same UTC
+  day, so by the time it's actually midnight in the US, UTC has long since advanced to the next
+  date, and a window starting at "today" (UTC) would have already dropped last night's late
+  finishers — hours before the guest's own day had even ended. Shifting the *whole* window back
+  one day, rather than widening it, keeps every league's total span (and therefore payload size)
+  identical to before — see the next paragraph for why that matters. A finished game returned is
+  still always bounded to yesterday-or-today, never real history.
 
   The seamless-loop trick (scroll a doubled track exactly -50%) only works if that first half is
   already wider than the viewport — with just 1-2 matches it isn't, and the bar runs out of

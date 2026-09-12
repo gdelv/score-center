@@ -79,24 +79,27 @@ function ScrollingBar({
 
 /**
  * A continuously scrolling strip, unfiltered by the league/sport selection
- * below it. Prefers live matches; falls back to today's finished results
- * when nothing's live (rather than an empty bar); falls back again to a
- * static message when neither exists (e.g. before anything's kicked off).
+ * below it. Prefers live matches; falls back to recently finished results
+ * when nothing's live — including last night's, kept around through the
+ * guest's own local midnight until something new goes live, not just
+ * "today" by the server's UTC clock (see fetchAllUpcomingMatches) — rather
+ * than an empty bar; falls back again to a static message when neither
+ * exists (e.g. before anything's kicked off).
  */
 export function LiveTicker({
   liveMatches,
-  finishedTodayMatches,
+  recentFinishedMatches,
 }: {
   liveMatches: Match[];
-  finishedTodayMatches: Match[];
+  recentFinishedMatches: Match[];
 }) {
-  if (liveMatches.length === 0 && finishedTodayMatches.length === 0) {
+  if (liveMatches.length === 0 && recentFinishedMatches.length === 0) {
     // Same bar, same height regardless of which state we're in — no layout
     // jump the moment a match goes live or wraps up.
     return (
       <div className="overflow-hidden border-b border-border bg-surface">
         <div className="flex items-center px-4 py-2 text-[13px] text-ink-dim">
-          No games yet today
+          No games right now
         </div>
       </div>
     );
@@ -107,7 +110,7 @@ export function LiveTicker({
       {liveMatches.length > 0 ? (
         <ScrollingBar matches={liveMatches} Item={LiveTickerItem} />
       ) : (
-        <ScrollingBar matches={finishedTodayMatches} Item={FinishedTickerItem} />
+        <ScrollingBar matches={recentFinishedMatches} Item={FinishedTickerItem} />
       )}
     </div>
   );

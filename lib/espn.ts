@@ -179,11 +179,12 @@ async function fetchLeagueMatches(
     const data: EspnScoreboardResponse = await res.json();
     const events = data.events ?? [];
 
-    // Includes finished ("post") games too — the fetch window always starts
-    // at today, so any finished game returned is necessarily from today, not
-    // history. Callers that only want the upcoming board filter state==="post"
-    // back out themselves; the live ticker's finished-game fallback wants
-    // exactly these.
+    // Includes finished ("post") games too — the fetch window's start is
+    // pinned to (at most) yesterday, never further back, so a finished game
+    // returned here is always from yesterday or today, never real history.
+    // Callers that only want the upcoming board filter state==="post" back
+    // out themselves; the live ticker's finished-game fallback wants exactly
+    // these, including last night's, until something newer goes live.
     return events.map((e) => {
       const competition = e.competitions[0];
       const competitors = competition?.competitors ?? [];
@@ -233,11 +234,20 @@ function formatYmd(d: Date): string {
 }
 
 async function fetchAllUpcomingMatchesUncached(days: number): Promise<Match[]> {
-  const today = new Date();
-  const fromYmd = formatYmd(today);
+  // Starts one UTC day *before* today, not today itself. UTC rolls over
+  // hours before local midnight for anyone west of it (a 7pm ET kickoff is
+  // already 11pm UTC that same UTC day; by actual local midnight ET, UTC has
+  // long since advanced to the next date) — so a window starting at "today"
+  // loses last night's late finishers the moment UTC ticks over, well before
+  // the guest's own day has ended. Shifting the whole window back by one day
+  // (not just widening it) keeps every league's total span, and therefore
+  // payload size, unchanged — see fetchLeagueMatches for why that matters.
+  const windowStart = new Date();
+  windowStart.setUTCDate(windowStart.getUTCDate() - 1);
+  const fromYmd = formatYmd(windowStart);
 
   function windowEndYmd(league: LeagueConfig): string {
-    const end = new Date(today);
+    const end = new Date(windowStart);
     end.setUTCDate(end.getUTCDate() + Math.min(days, league.maxWindowDays ?? days));
     return formatYmd(end);
   }
@@ -270,16 +280,18 @@ const cachedFetchAllUpcomingMatches = unstable_cache(
 );
 
 /**
- * Fetches every configured league in parallel for the next `days` days
- * (incl. today), and caches the resulting — small, normalized — match list
- * for 120s. Caching happens here rather than on the individual upstream
- * fetches: see fetchLeagueMatches for why.
+ * Fetches every configured league in parallel for roughly the next `days`
+ * days (the window actually starts yesterday — see below), and caches the
+ * resulting — small, normalized — match list for 120s. Caching happens here
+ * rather than on the individual upstream fetches: see fetchLeagueMatches for
+ * why.
  *
- * Despite the name, this includes today's *finished* games too (state
- * "post") — the upcoming-matches board filters those back out itself, but
- * the live ticker wants them as its finished-today fallback. See
- * fetchLeagueMatches for why that's safe (the window never reaches into
- * the past, so a finished game here is always from today).
+ * Despite the name, this includes yesterday's and today's *finished* games
+ * too (state "post") — the upcoming-matches board filters those back out
+ * itself, but the live ticker wants them as its finished-game fallback, kept
+ * around through the guest's own local midnight until something new goes
+ * live. See fetchLeagueMatches for why that's still safe (bounded to
+ * yesterday at the earliest, never real history).
  */
 export function fetchAllUpcomingMatches(days = 14): Promise<Match[]> {
   return cachedFetchAllUpcomingMatches(days);
