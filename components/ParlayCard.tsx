@@ -1,5 +1,6 @@
 import type { GradedLeg, GradedParlay, ParlayStatus } from "@/lib/predictions";
 import { TeamLogo } from "./TeamLogo";
+import { LegReasonHint } from "./LegReasonHint";
 
 const STATUS_LABEL: Record<ParlayStatus, string> = {
   pending: "Pending",
@@ -48,14 +49,22 @@ function LegRow({ leg }: { leg: GradedLeg }) {
 
   return (
     <div className="flex items-center justify-between gap-3 py-2">
-      <div className="flex min-w-0 items-center gap-2">
+      <LegReasonHint reason={leg.reason}>
         <TeamLogo src={pickedLogo} alt={pickedShort} size={18} />
         <span className="truncate text-[13px] text-ink">
-          <span className="font-medium">{pickedShort}</span>{" "}
+          <span
+            className={
+              leg.reason
+                ? "font-medium underline decoration-ink-dim/50 decoration-dotted underline-offset-2"
+                : "font-medium"
+            }
+          >
+            {pickedShort}
+          </span>{" "}
           <span className="tabular text-ink-dim">{lineText}</span>
           <span className="text-ink-dim"> vs {opponentShort}</span>
         </span>
-      </div>
+      </LegReasonHint>
       <LegStatus leg={leg} />
     </div>
   );

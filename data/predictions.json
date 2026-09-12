@@ -8,54 +8,354 @@
           "contestant": "claude",
           "legCount": 3,
           "legs": [
-            { "matchId": "college-football-401858439", "awayTeam": "Howard Bison", "awayShort": "Howard", "homeTeam": "Indiana Hoosiers", "homeShort": "Indiana", "pick": "home", "line": -57.5, "kickoff": "2026-09-12T16:00Z" },
-            { "matchId": "college-football-401859184", "awayTeam": "Rice Owls", "awayShort": "Rice", "homeTeam": "Notre Dame Fighting Irish", "homeShort": "Notre Dame", "pick": "home", "line": -45.5, "kickoff": "2026-09-12T19:30Z" },
-            { "matchId": "college-football-401856787", "awayTeam": "Southern Jaguars", "awayShort": "Southern", "homeTeam": "Houston Cougars", "homeShort": "Houston", "pick": "home", "line": -51.5, "kickoff": "2026-09-12T23:00Z" }
+            {
+              "matchId": "college-football-401858439",
+              "awayTeam": "Howard Bison",
+              "awayShort": "Howard",
+              "homeTeam": "Indiana Hoosiers",
+              "homeShort": "Indiana",
+              "pick": "home",
+              "line": -57.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Howard is an FCS opponent facing a top-5 Big Ten team off to a hot start \u2014 the talent and depth gap here is wide enough that even a 57.5-point number feels beatable."
+            },
+            {
+              "matchId": "college-football-401859184",
+              "awayTeam": "Rice Owls",
+              "awayShort": "Rice",
+              "homeTeam": "Notre Dame Fighting Irish",
+              "homeShort": "Notre Dame",
+              "pick": "home",
+              "line": -45.5,
+              "kickoff": "2026-09-12T19:30Z",
+              "reason": "Rice is a Group of Five team with a much thinner roster than a top-5 program; Notre Dame should be able to turn to backups by the third quarter and still cover."
+            },
+            {
+              "matchId": "college-football-401856787",
+              "awayTeam": "Southern Jaguars",
+              "awayShort": "Southern",
+              "homeTeam": "Houston Cougars",
+              "homeShort": "Houston",
+              "pick": "home",
+              "line": -51.5,
+              "kickoff": "2026-09-12T23:00Z",
+              "reason": "Southern is an FCS opponent \u2014 the biggest mismatch on the board, and the kind of game ranked teams routinely cover by 60+."
+            }
           ]
         },
         {
           "contestant": "claude",
           "legCount": 6,
           "legs": [
-            { "matchId": "college-football-401858439", "awayTeam": "Howard Bison", "awayShort": "Howard", "homeTeam": "Indiana Hoosiers", "homeShort": "Indiana", "pick": "home", "line": -57.5, "kickoff": "2026-09-12T16:00Z" },
-            { "matchId": "college-football-401859184", "awayTeam": "Rice Owls", "awayShort": "Rice", "homeTeam": "Notre Dame Fighting Irish", "homeShort": "Notre Dame", "pick": "home", "line": -45.5, "kickoff": "2026-09-12T19:30Z" },
-            { "matchId": "college-football-401856787", "awayTeam": "Southern Jaguars", "awayShort": "Southern", "homeTeam": "Houston Cougars", "homeShort": "Houston", "pick": "home", "line": -51.5, "kickoff": "2026-09-12T23:00Z" },
-            { "matchId": "college-football-401856676", "awayTeam": "Charlotte 49ers", "awayShort": "Charlotte", "homeTeam": "Ole Miss Rebels", "homeShort": "Ole Miss", "pick": "home", "line": -44.5, "kickoff": "2026-09-12T23:45Z" },
-            { "matchId": "college-football-401856673", "awayTeam": "Western Kentucky Hilltoppers", "awayShort": "Western KY", "homeTeam": "Georgia Bulldogs", "homeShort": "Georgia", "pick": "home", "line": -39.5, "kickoff": "2026-09-12T16:45Z" },
-            { "matchId": "college-football-401867796", "awayTeam": "Louisiana Tech Bulldogs", "awayShort": "Louisiana Tech", "homeTeam": "LSU Tigers", "homeShort": "LSU", "pick": "home", "line": -35.5, "kickoff": "2026-09-12T23:30Z" }
+            {
+              "matchId": "college-football-401858439",
+              "awayTeam": "Howard Bison",
+              "awayShort": "Howard",
+              "homeTeam": "Indiana Hoosiers",
+              "homeShort": "Indiana",
+              "pick": "home",
+              "line": -57.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Howard is an FCS opponent facing a top-5 Big Ten team off to a hot start \u2014 the talent and depth gap here is wide enough that even a 57.5-point number feels beatable."
+            },
+            {
+              "matchId": "college-football-401859184",
+              "awayTeam": "Rice Owls",
+              "awayShort": "Rice",
+              "homeTeam": "Notre Dame Fighting Irish",
+              "homeShort": "Notre Dame",
+              "pick": "home",
+              "line": -45.5,
+              "kickoff": "2026-09-12T19:30Z",
+              "reason": "Rice is a Group of Five team with a much thinner roster than a top-5 program; Notre Dame should be able to turn to backups by the third quarter and still cover."
+            },
+            {
+              "matchId": "college-football-401856787",
+              "awayTeam": "Southern Jaguars",
+              "awayShort": "Southern",
+              "homeTeam": "Houston Cougars",
+              "homeShort": "Houston",
+              "pick": "home",
+              "line": -51.5,
+              "kickoff": "2026-09-12T23:00Z",
+              "reason": "Southern is an FCS opponent \u2014 the biggest mismatch on the board, and the kind of game ranked teams routinely cover by 60+."
+            },
+            {
+              "matchId": "college-football-401856676",
+              "awayTeam": "Charlotte 49ers",
+              "awayShort": "Charlotte",
+              "homeTeam": "Ole Miss Rebels",
+              "homeShort": "Ole Miss",
+              "pick": "home",
+              "line": -44.5,
+              "kickoff": "2026-09-12T23:45Z",
+              "reason": "Charlotte's offense has struggled to move the ball against Power Four defenses, and Ole Miss's is explosive enough to keep scoring even after the starters sit."
+            },
+            {
+              "matchId": "college-football-401856673",
+              "awayTeam": "Western Kentucky Hilltoppers",
+              "awayShort": "Western KY",
+              "homeTeam": "Georgia Bulldogs",
+              "homeShort": "Georgia",
+              "pick": "home",
+              "line": -39.5,
+              "kickoff": "2026-09-12T16:45Z",
+              "reason": "Georgia's defense is elite even in a down year, and Western Kentucky doesn't have the offensive line to sustain drives against it."
+            },
+            {
+              "matchId": "college-football-401867796",
+              "awayTeam": "Louisiana Tech Bulldogs",
+              "awayShort": "Louisiana Tech",
+              "homeTeam": "LSU Tigers",
+              "homeShort": "LSU",
+              "pick": "home",
+              "line": -35.5,
+              "kickoff": "2026-09-12T23:30Z",
+              "reason": "In-state size mismatch \u2014 LSU's roster talent dwarfs a Conference USA opponent, and this should stay comfortable regardless of any early-game rust."
+            }
           ]
         },
         {
           "contestant": "claude",
           "legCount": 9,
           "legs": [
-            { "matchId": "college-football-401858439", "awayTeam": "Howard Bison", "awayShort": "Howard", "homeTeam": "Indiana Hoosiers", "homeShort": "Indiana", "pick": "home", "line": -57.5, "kickoff": "2026-09-12T16:00Z" },
-            { "matchId": "college-football-401859184", "awayTeam": "Rice Owls", "awayShort": "Rice", "homeTeam": "Notre Dame Fighting Irish", "homeShort": "Notre Dame", "pick": "home", "line": -45.5, "kickoff": "2026-09-12T19:30Z" },
-            { "matchId": "college-football-401856787", "awayTeam": "Southern Jaguars", "awayShort": "Southern", "homeTeam": "Houston Cougars", "homeShort": "Houston", "pick": "home", "line": -51.5, "kickoff": "2026-09-12T23:00Z" },
-            { "matchId": "college-football-401856676", "awayTeam": "Charlotte 49ers", "awayShort": "Charlotte", "homeTeam": "Ole Miss Rebels", "homeShort": "Ole Miss", "pick": "home", "line": -44.5, "kickoff": "2026-09-12T23:45Z" },
-            { "matchId": "college-football-401856673", "awayTeam": "Western Kentucky Hilltoppers", "awayShort": "Western KY", "homeTeam": "Georgia Bulldogs", "homeShort": "Georgia", "pick": "home", "line": -39.5, "kickoff": "2026-09-12T16:45Z" },
-            { "matchId": "college-football-401867796", "awayTeam": "Louisiana Tech Bulldogs", "awayShort": "Louisiana Tech", "homeTeam": "LSU Tigers", "homeShort": "LSU", "pick": "home", "line": -35.5, "kickoff": "2026-09-12T23:30Z" },
-            { "matchId": "college-football-401858445", "awayTeam": "Louisiana Ragin' Cajuns", "awayShort": "Louisiana", "homeTeam": "USC Trojans", "homeShort": "USC", "pick": "home", "line": -31.5, "kickoff": "2026-09-13T03:00Z" },
-            { "matchId": "college-football-401858223", "awayTeam": "UC Davis Aggies", "awayShort": "UC Davis", "homeTeam": "SMU Mustangs", "homeShort": "SMU", "pick": "home", "line": -30.5, "kickoff": "2026-09-12T20:00Z" },
-            { "matchId": "college-football-401856782", "awayTeam": "Oregon Ducks", "awayShort": "Oregon", "homeTeam": "Oklahoma State Cowboys", "homeShort": "Oklahoma St", "pick": "away", "line": -23.5, "kickoff": "2026-09-12T16:00Z" }
+            {
+              "matchId": "college-football-401858439",
+              "awayTeam": "Howard Bison",
+              "awayShort": "Howard",
+              "homeTeam": "Indiana Hoosiers",
+              "homeShort": "Indiana",
+              "pick": "home",
+              "line": -57.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Howard is an FCS opponent facing a top-5 Big Ten team off to a hot start \u2014 the talent and depth gap here is wide enough that even a 57.5-point number feels beatable."
+            },
+            {
+              "matchId": "college-football-401859184",
+              "awayTeam": "Rice Owls",
+              "awayShort": "Rice",
+              "homeTeam": "Notre Dame Fighting Irish",
+              "homeShort": "Notre Dame",
+              "pick": "home",
+              "line": -45.5,
+              "kickoff": "2026-09-12T19:30Z",
+              "reason": "Rice is a Group of Five team with a much thinner roster than a top-5 program; Notre Dame should be able to turn to backups by the third quarter and still cover."
+            },
+            {
+              "matchId": "college-football-401856787",
+              "awayTeam": "Southern Jaguars",
+              "awayShort": "Southern",
+              "homeTeam": "Houston Cougars",
+              "homeShort": "Houston",
+              "pick": "home",
+              "line": -51.5,
+              "kickoff": "2026-09-12T23:00Z",
+              "reason": "Southern is an FCS opponent \u2014 the biggest mismatch on the board, and the kind of game ranked teams routinely cover by 60+."
+            },
+            {
+              "matchId": "college-football-401856676",
+              "awayTeam": "Charlotte 49ers",
+              "awayShort": "Charlotte",
+              "homeTeam": "Ole Miss Rebels",
+              "homeShort": "Ole Miss",
+              "pick": "home",
+              "line": -44.5,
+              "kickoff": "2026-09-12T23:45Z",
+              "reason": "Charlotte's offense has struggled to move the ball against Power Four defenses, and Ole Miss's is explosive enough to keep scoring even after the starters sit."
+            },
+            {
+              "matchId": "college-football-401856673",
+              "awayTeam": "Western Kentucky Hilltoppers",
+              "awayShort": "Western KY",
+              "homeTeam": "Georgia Bulldogs",
+              "homeShort": "Georgia",
+              "pick": "home",
+              "line": -39.5,
+              "kickoff": "2026-09-12T16:45Z",
+              "reason": "Georgia's defense is elite even in a down year, and Western Kentucky doesn't have the offensive line to sustain drives against it."
+            },
+            {
+              "matchId": "college-football-401867796",
+              "awayTeam": "Louisiana Tech Bulldogs",
+              "awayShort": "Louisiana Tech",
+              "homeTeam": "LSU Tigers",
+              "homeShort": "LSU",
+              "pick": "home",
+              "line": -35.5,
+              "kickoff": "2026-09-12T23:30Z",
+              "reason": "In-state size mismatch \u2014 LSU's roster talent dwarfs a Conference USA opponent, and this should stay comfortable regardless of any early-game rust."
+            },
+            {
+              "matchId": "college-football-401858445",
+              "awayTeam": "Louisiana Ragin' Cajuns",
+              "awayShort": "Louisiana",
+              "homeTeam": "USC Trojans",
+              "homeShort": "USC",
+              "pick": "home",
+              "line": -31.5,
+              "kickoff": "2026-09-13T03:00Z",
+              "reason": "USC's offense has been one of the most efficient in the country, and Louisiana's defense hasn't faced a unit this fast all season."
+            },
+            {
+              "matchId": "college-football-401858223",
+              "awayTeam": "UC Davis Aggies",
+              "awayShort": "UC Davis",
+              "homeTeam": "SMU Mustangs",
+              "homeShort": "SMU",
+              "pick": "home",
+              "line": -30.5,
+              "kickoff": "2026-09-12T20:00Z",
+              "reason": "UC Davis is an FCS opponent stepping up two levels in competition; SMU's skill-position speed should be untouchable here."
+            },
+            {
+              "matchId": "college-football-401856782",
+              "awayTeam": "Oregon Ducks",
+              "awayShort": "Oregon",
+              "homeTeam": "Oklahoma State Cowboys",
+              "homeShort": "Oklahoma St",
+              "pick": "away",
+              "line": -23.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Oregon is the more talented, deeper roster on both sides of the ball \u2014 Oklahoma State's rebuild is still a year or two from competing with a top-10 team."
+            }
           ]
         },
         {
           "contestant": "claude",
           "legCount": 12,
           "legs": [
-            { "matchId": "college-football-401858439", "awayTeam": "Howard Bison", "awayShort": "Howard", "homeTeam": "Indiana Hoosiers", "homeShort": "Indiana", "pick": "home", "line": -57.5, "kickoff": "2026-09-12T16:00Z" },
-            { "matchId": "college-football-401859184", "awayTeam": "Rice Owls", "awayShort": "Rice", "homeTeam": "Notre Dame Fighting Irish", "homeShort": "Notre Dame", "pick": "home", "line": -45.5, "kickoff": "2026-09-12T19:30Z" },
-            { "matchId": "college-football-401856787", "awayTeam": "Southern Jaguars", "awayShort": "Southern", "homeTeam": "Houston Cougars", "homeShort": "Houston", "pick": "home", "line": -51.5, "kickoff": "2026-09-12T23:00Z" },
-            { "matchId": "college-football-401856676", "awayTeam": "Charlotte 49ers", "awayShort": "Charlotte", "homeTeam": "Ole Miss Rebels", "homeShort": "Ole Miss", "pick": "home", "line": -44.5, "kickoff": "2026-09-12T23:45Z" },
-            { "matchId": "college-football-401856673", "awayTeam": "Western Kentucky Hilltoppers", "awayShort": "Western KY", "homeTeam": "Georgia Bulldogs", "homeShort": "Georgia", "pick": "home", "line": -39.5, "kickoff": "2026-09-12T16:45Z" },
-            { "matchId": "college-football-401867796", "awayTeam": "Louisiana Tech Bulldogs", "awayShort": "Louisiana Tech", "homeTeam": "LSU Tigers", "homeShort": "LSU", "pick": "home", "line": -35.5, "kickoff": "2026-09-12T23:30Z" },
-            { "matchId": "college-football-401858445", "awayTeam": "Louisiana Ragin' Cajuns", "awayShort": "Louisiana", "homeTeam": "USC Trojans", "homeShort": "USC", "pick": "home", "line": -31.5, "kickoff": "2026-09-13T03:00Z" },
-            { "matchId": "college-football-401858223", "awayTeam": "UC Davis Aggies", "awayShort": "UC Davis", "homeTeam": "SMU Mustangs", "homeShort": "SMU", "pick": "home", "line": -30.5, "kickoff": "2026-09-12T20:00Z" },
-            { "matchId": "college-football-401856782", "awayTeam": "Oregon Ducks", "awayShort": "Oregon", "homeTeam": "Oklahoma State Cowboys", "homeShort": "Oklahoma St", "pick": "away", "line": -23.5, "kickoff": "2026-09-12T16:00Z" },
-            { "matchId": "college-football-401858442", "awayTeam": "Penn State Nittany Lions", "awayShort": "Penn State", "homeTeam": "Temple Owls", "homeShort": "Temple", "pick": "away", "line": -24.5, "kickoff": "2026-09-12T16:00Z" },
-            { "matchId": "college-football-401856674", "awayTeam": "Alabama Crimson Tide", "awayShort": "Alabama", "homeTeam": "Kentucky Wildcats", "homeShort": "Kentucky", "pick": "away", "line": -10, "kickoff": "2026-09-12T19:30Z" },
-            { "matchId": "college-football-401856682", "awayTeam": "Ohio State Buckeyes", "awayShort": "Ohio State", "homeTeam": "Texas Longhorns", "homeShort": "Texas", "pick": "away", "line": 1.5, "kickoff": "2026-09-12T23:30Z" }
+            {
+              "matchId": "college-football-401858439",
+              "awayTeam": "Howard Bison",
+              "awayShort": "Howard",
+              "homeTeam": "Indiana Hoosiers",
+              "homeShort": "Indiana",
+              "pick": "home",
+              "line": -57.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Howard is an FCS opponent facing a top-5 Big Ten team off to a hot start \u2014 the talent and depth gap here is wide enough that even a 57.5-point number feels beatable."
+            },
+            {
+              "matchId": "college-football-401859184",
+              "awayTeam": "Rice Owls",
+              "awayShort": "Rice",
+              "homeTeam": "Notre Dame Fighting Irish",
+              "homeShort": "Notre Dame",
+              "pick": "home",
+              "line": -45.5,
+              "kickoff": "2026-09-12T19:30Z",
+              "reason": "Rice is a Group of Five team with a much thinner roster than a top-5 program; Notre Dame should be able to turn to backups by the third quarter and still cover."
+            },
+            {
+              "matchId": "college-football-401856787",
+              "awayTeam": "Southern Jaguars",
+              "awayShort": "Southern",
+              "homeTeam": "Houston Cougars",
+              "homeShort": "Houston",
+              "pick": "home",
+              "line": -51.5,
+              "kickoff": "2026-09-12T23:00Z",
+              "reason": "Southern is an FCS opponent \u2014 the biggest mismatch on the board, and the kind of game ranked teams routinely cover by 60+."
+            },
+            {
+              "matchId": "college-football-401856676",
+              "awayTeam": "Charlotte 49ers",
+              "awayShort": "Charlotte",
+              "homeTeam": "Ole Miss Rebels",
+              "homeShort": "Ole Miss",
+              "pick": "home",
+              "line": -44.5,
+              "kickoff": "2026-09-12T23:45Z",
+              "reason": "Charlotte's offense has struggled to move the ball against Power Four defenses, and Ole Miss's is explosive enough to keep scoring even after the starters sit."
+            },
+            {
+              "matchId": "college-football-401856673",
+              "awayTeam": "Western Kentucky Hilltoppers",
+              "awayShort": "Western KY",
+              "homeTeam": "Georgia Bulldogs",
+              "homeShort": "Georgia",
+              "pick": "home",
+              "line": -39.5,
+              "kickoff": "2026-09-12T16:45Z",
+              "reason": "Georgia's defense is elite even in a down year, and Western Kentucky doesn't have the offensive line to sustain drives against it."
+            },
+            {
+              "matchId": "college-football-401867796",
+              "awayTeam": "Louisiana Tech Bulldogs",
+              "awayShort": "Louisiana Tech",
+              "homeTeam": "LSU Tigers",
+              "homeShort": "LSU",
+              "pick": "home",
+              "line": -35.5,
+              "kickoff": "2026-09-12T23:30Z",
+              "reason": "In-state size mismatch \u2014 LSU's roster talent dwarfs a Conference USA opponent, and this should stay comfortable regardless of any early-game rust."
+            },
+            {
+              "matchId": "college-football-401858445",
+              "awayTeam": "Louisiana Ragin' Cajuns",
+              "awayShort": "Louisiana",
+              "homeTeam": "USC Trojans",
+              "homeShort": "USC",
+              "pick": "home",
+              "line": -31.5,
+              "kickoff": "2026-09-13T03:00Z",
+              "reason": "USC's offense has been one of the most efficient in the country, and Louisiana's defense hasn't faced a unit this fast all season."
+            },
+            {
+              "matchId": "college-football-401858223",
+              "awayTeam": "UC Davis Aggies",
+              "awayShort": "UC Davis",
+              "homeTeam": "SMU Mustangs",
+              "homeShort": "SMU",
+              "pick": "home",
+              "line": -30.5,
+              "kickoff": "2026-09-12T20:00Z",
+              "reason": "UC Davis is an FCS opponent stepping up two levels in competition; SMU's skill-position speed should be untouchable here."
+            },
+            {
+              "matchId": "college-football-401856782",
+              "awayTeam": "Oregon Ducks",
+              "awayShort": "Oregon",
+              "homeTeam": "Oklahoma State Cowboys",
+              "homeShort": "Oklahoma St",
+              "pick": "away",
+              "line": -23.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Oregon is the more talented, deeper roster on both sides of the ball \u2014 Oklahoma State's rebuild is still a year or two from competing with a top-10 team."
+            },
+            {
+              "matchId": "college-football-401858442",
+              "awayTeam": "Penn State Nittany Lions",
+              "awayShort": "Penn State",
+              "homeTeam": "Temple Owls",
+              "homeShort": "Temple",
+              "pick": "away",
+              "line": -24.5,
+              "kickoff": "2026-09-12T16:00Z",
+              "reason": "Penn State is a national-title contender at home against a rebuilding Group of Five team \u2014 this line looks more about garbage-time backups than any real doubt about the outcome."
+            },
+            {
+              "matchId": "college-football-401856674",
+              "awayTeam": "Alabama Crimson Tide",
+              "awayShort": "Alabama",
+              "homeTeam": "Kentucky Wildcats",
+              "homeShort": "Kentucky",
+              "pick": "away",
+              "line": -10,
+              "kickoff": "2026-09-12T19:30Z",
+              "reason": "Alabama's talent edge is real even on the road, and Kentucky's offense hasn't shown enough explosiveness to keep this within a single score."
+            },
+            {
+              "matchId": "college-football-401856682",
+              "awayTeam": "Ohio State Buckeyes",
+              "awayShort": "Ohio State",
+              "homeTeam": "Texas Longhorns",
+              "homeShort": "Texas",
+              "pick": "away",
+              "line": 1.5,
+              "kickoff": "2026-09-12T23:30Z",
+              "reason": "The closest call on the board \u2014 a true top-5 pick'em. I'd rather have Ohio State's defensive front and the extra 1.5 points than lay them as a true road favorite in a game this even."
+            }
           ]
         }
       ]

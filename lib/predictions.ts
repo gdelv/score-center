@@ -32,6 +32,8 @@ export interface PredictionLeg {
   line: number;
   /** Kickoff, ISO UTC — used only to know which date to query for grading. */
   kickoff: string;
+  /** Why this pick was made — shown on hover/tap. Optional so older entries without one still render fine. */
+  reason?: string;
 }
 
 export interface Parlay {

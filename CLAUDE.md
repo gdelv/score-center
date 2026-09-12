@@ -105,6 +105,15 @@ both teams' names, which side was `pick`ed, and the spread `line` *relative to t
 did that week, find each game's real `matchId` via `/api/matches` (or ESPN's college-football
 scoreboard for that date) so grading can find it, then commit and let it deploy. There is
 deliberately no other step — no separate "grade this week" action, no scores to enter by hand.
+Each leg also takes an optional `reason` string — a sentence or two of why that pick was made,
+shown on hover (desktop) / tap (mobile) via `LegReasonHint.tsx`, same interaction pattern as
+`TeamMatchupHint.tsx` (mutually-exclusive hover/click handlers, not layered — see that
+component's doc comment for why) but simpler: the text is already in hand from the data file, no
+fetch or cache needed. `ParlayCard.tsx` adds a dotted underline to a pick's team name only when
+it has a `reason`, so there's a visible affordance for which picks are hoverable. Claude's own
+picks always get a `reason` explaining the actual basis for the pick (ranking, spread-as-market-
+signal, or explicit judgment call) — if the user relays ChatGPT's/Gemini's picks without their
+own stated reasoning, it's fine to leave `reason` off those legs rather than inventing one.
 
 **Grading is fully dynamic, not recorded once and left stale** (`gradeWeeks` in
 `lib/predictions.ts`, same `unstable_cache` + 120s-revalidate pattern as
@@ -142,6 +151,7 @@ type-specific evaluator per leg.
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
 | `components/PredictionsBoard.tsx` | Client orchestrator for `/predictions` — same polling pattern as `ScoreCenter.tsx` |
 | `components/PredictionsLeaderboard.tsx` / `PredictionsWeek.tsx` / `ParlayCard.tsx` | Season record cards, per-week grouping, one parlay's legs |
+| `components/LegReasonHint.tsx` | Hover (desktop) / tap (mobile) a pick to read why it was made |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
 | `lib/espn.ts`, `lib/leagues.ts`, `lib/format.ts` | Data fetching, league config, date/time formatting |
