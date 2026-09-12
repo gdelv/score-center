@@ -79,10 +79,16 @@ export async function GET(request: Request) {
       opponent: opponent.team.shortDisplayName ?? opponent.team.displayName,
     };
 
-    return NextResponse.json(
-      { result },
-      { headers: { "Cache-Control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" } },
-    );
+    // Deliberately no Cache-Control header here. Netlify's CDN caches a
+    // route handler's response by pathname only — it doesn't automatically
+    // vary by arbitrary query strings like espnPath/teamId — so setting one
+    // previously meant the *first* team ever queried got served back to
+    // every subsequent request regardless of which team was asked for. The
+    // upstream ESPN fetch above already caches correctly per-team via
+    // `next: { revalidate }`, which is origin-level and keyed by the full
+    // URL (including query params), not CDN-level — that's the caching
+    // that actually matters here.
+    return NextResponse.json({ result });
   } catch {
     return NextResponse.json({ result: null });
   }

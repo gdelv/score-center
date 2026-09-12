@@ -211,6 +211,19 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   every single tap. `TeamMatchupHint` picks one handler set via `matchMedia("(hover: hover)")`
   (through `useSyncExternalStore`, so it also reacts if a mouse gets connected/disconnected) and
   never attaches both at once.
+
+  **`app/api/team-result/route.ts` must never set its own `Cache-Control` header** — it did once,
+  briefly, and every single team on the site showed identical results because of it (one team's
+  response, whichever got cached first, served back for every other team's query). Netlify's CDN
+  caches a route handler's response by *pathname only* — it does not automatically vary by
+  arbitrary query strings like `espnPath`/`teamId` the way you'd expect a normal HTTP cache to.
+  `GET /api/team-result?...&teamId=3307` and `...&teamId=124` are, to that cache, the same key.
+  Per-team correctness instead comes entirely from the *upstream* ESPN `fetch` inside the route,
+  via `next: { revalidate }` — that's origin-level caching keyed by the full URL including query
+  params, which behaves the way you'd actually expect. `/api/matches/route.ts` is the one route
+  that's safe to put a `Cache-Control` header on, specifically because it takes no query
+  parameters at all — every request to it really is the same response, so pathname-only CDN
+  caching is correct there, not a bug.
 - **Aesthetic-usability effect + speed as trust** — the first paint is server-rendered with no
   loading spinner; the one entrance animation is skipped on initial load (`AnimatePresence
   initial={false}` in `ScoreCenter.tsx`) so nothing delays what the guest already has. Motion is
