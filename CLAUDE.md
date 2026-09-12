@@ -143,11 +143,18 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   bleeds full-width outside the page's max-width container (real broadcast/stock tickers always
   do), and pauses on hover so a guest can actually read one line.
 
-  Falls back in order: **live matches** (pulsing dot, "AWAY 3 – 2 HOME", elapsed time) →
-  **recently finished games**, if nothing's live (no dot — that signal is reserved for genuinely
-  live — broadcast-ticker style: `"NCAAF | UF 33 @ FSU 32 F | LSU 35 @ Alabama 34 F"`) → a static
-  "No games right now" message, only if neither exists (e.g. before anything's kicked off). Same
-  bar, same height in every state — no layout jump as it moves between them.
+  Falls back in order: **live matches** (pulsing dot, elapsed time) → **recently finished games**,
+  if nothing's live (no dot — that signal is reserved for genuinely live) → a static "No games
+  right now" message, only if neither exists (e.g. before anything's kicked off). Same bar, same
+  height in every state — no layout jump as it moves between them.
+
+  Items are logos-only, no team name text (`components/LiveTicker.tsx`'s `GameScore`) — a ticker
+  is for scanning fast, and the logo already carries recognition. `groupByLeague` reorders the
+  list so same-league games sit adjacent, and `ScrollingBar` only emits a league label where the
+  league actually changes from the previous cell, not before every game: `"NCAAF | 13 @ 59 F |
+  3 @ 59 F | 38 @ 21 F | Liga MX | 1 @ 0 F | ..."` — three NCAAF games, one label. This grouping
+  happens *before* the repeat-then-double step below, so it also holds across every repetition of
+  the loop, not just the first pass.
 
   This is why `fetchLeagueMatches` in `lib/espn.ts` no longer filters out `state === "post"`
   events — the upcoming-matches board still excludes them itself (`ScoreCenter.tsx`'s
