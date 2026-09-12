@@ -1,4 +1,4 @@
-import type { Match } from "./espn";
+import type { Match, MatchOdds } from "./espn";
 
 /**
  * UTC calendar-day key, e.g. "2026-09-11" — deliberately UTC, not the
@@ -42,6 +42,14 @@ export function dayLabel(iso: string): string {
     month: "long",
     day: "numeric",
   });
+}
+
+/** Joins whichever of spread/over-under is actually present — either can be posted without the other. */
+export function formatOdds(odds: MatchOdds): string {
+  const parts: string[] = [];
+  if (odds.details) parts.push(odds.details);
+  if (odds.overUnder != null) parts.push(`O/U ${odds.overUnder}`);
+  return parts.join(" · ");
 }
 
 export function matchTime(iso: string): string {

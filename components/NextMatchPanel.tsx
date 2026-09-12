@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Match } from "@/lib/espn";
-import { dayLabel, matchTime } from "@/lib/format";
+import { dayLabel, formatOdds, matchTime } from "@/lib/format";
 import { TeamLogo } from "./TeamLogo";
 import { LiveBadge } from "./LiveBadge";
 
@@ -104,10 +104,7 @@ export function NextMatchPanel({
       </div>
 
       {showOdds && match.odds && (
-        <div className="tabular mt-1.5 text-xs text-ink-dim">
-          {match.odds.details}
-          {match.odds.overUnder != null && ` · O/U ${match.odds.overUnder}`}
-        </div>
+        <div className="tabular mt-1.5 text-xs text-ink-dim">{formatOdds(match.odds)}</div>
       )}
     </div>
   );

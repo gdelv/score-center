@@ -62,17 +62,17 @@ export function FilterSheet({
               aria-label="Filter leagues"
             >
               <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-              <LeagueFilter
-                selected={selected}
-                onToggle={onToggle}
-                onSelectAll={onSelectAll}
-                onSelectNone={onSelectNone}
-              />
               <DisplayToggles
                 showBroadcast={showBroadcast}
                 showOdds={showOdds}
                 onToggleBroadcast={onToggleBroadcast}
                 onToggleOdds={onToggleOdds}
+              />
+              <LeagueFilter
+                selected={selected}
+                onToggle={onToggle}
+                onSelectAll={onSelectAll}
+                onSelectNone={onSelectNone}
               />
               <button
                 type="button"

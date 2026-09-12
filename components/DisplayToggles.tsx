@@ -10,7 +10,7 @@ export function DisplayToggles({
   onToggleOdds: () => void;
 }) {
   return (
-    <div className="mt-6 border-t border-border pt-6">
+    <div className="mb-6 border-b border-border pb-6">
       <h2 className="mb-1 text-sm font-medium text-ink-dim">Show on each match</h2>
       <ul>
         <li>

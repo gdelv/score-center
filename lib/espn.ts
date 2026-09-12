@@ -15,8 +15,8 @@ export interface MatchTeam {
 }
 
 export interface MatchOdds {
-  /** Human-readable summary as ESPN presents it, e.g. "CIN -3.5" or "BOU +150". */
-  details: string;
+  /** Human-readable spread/moneyline summary as ESPN presents it, e.g. "CIN -3.5" or "BOU +150". */
+  details: string | null;
   overUnder: number | null;
   /** Sportsbook this line comes from, e.g. "DraftKings" — shown for attribution. */
   provider: string | null;
@@ -203,13 +203,18 @@ async function fetchLeagueMatches(
           away: toTeam(away),
           venue: competition?.venue?.fullName ?? null,
           broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
-          odds: rawOdds?.details
-            ? {
-                details: rawOdds.details,
-                overUnder: rawOdds.overUnder ?? null,
-                provider: rawOdds.provider?.displayName ?? null,
-              }
-            : null,
+          // Built whenever either line is present — a spread isn't always
+          // posted this early, but an over/under often already is (or vice
+          // versa), and dropping the whole thing for lacking one is why
+          // over/under could go missing even when ESPN actually has it.
+          odds:
+            rawOdds && (rawOdds.details || rawOdds.overUnder != null)
+              ? {
+                  details: rawOdds.details ?? null,
+                  overUnder: rawOdds.overUnder ?? null,
+                  provider: rawOdds.provider?.displayName ?? null,
+                }
+              : null,
         };
       });
   } catch {

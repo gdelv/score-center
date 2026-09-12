@@ -88,17 +88,17 @@ export function ScoreCenter({
 
         <div className="flex gap-10 pb-16">
           <aside className="hidden w-56 shrink-0 lg:block">
-            <LeagueFilter
-              selected={selected}
-              onToggle={toggle}
-              onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
-              onSelectNone={selectNone}
-            />
             <DisplayToggles
               showBroadcast={showBroadcast}
               showOdds={showOdds}
               onToggleBroadcast={toggleBroadcast}
               onToggleOdds={toggleOdds}
+            />
+            <LeagueFilter
+              selected={selected}
+              onToggle={toggle}
+              onSelectAll={() => selectAll(DEFAULT_SELECTED_LEAGUE_IDS)}
+              onSelectNone={selectNone}
             />
           </aside>
 

@@ -1,5 +1,5 @@
 import type { Match, MatchTeam } from "@/lib/espn";
-import { matchTime } from "@/lib/format";
+import { formatOdds, matchTime } from "@/lib/format";
 import { TeamLogo } from "./TeamLogo";
 import { LiveBadge } from "./LiveBadge";
 
@@ -62,10 +62,7 @@ export function MatchRow({
       </div>
 
       {showOdds && match.odds && (
-        <div className="tabular mt-2 text-[11px] text-ink-dim">
-          {match.odds.details}
-          {match.odds.overUnder != null && ` · O/U ${match.odds.overUnder}`}
-        </div>
+        <div className="tabular mt-2 text-[11px] text-ink-dim">{formatOdds(match.odds)}</div>
       )}
 
       {isLive && (
