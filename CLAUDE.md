@@ -95,6 +95,7 @@ source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 | `components/DisplayToggles.tsx` | Opt-in checkboxes for per-match broadcast/odds info, in both the sidebar and the mobile sheet |
 | `components/NextMatchPanel.tsx` | The single "Next up" hero — soonest match after filtering |
 | `components/DateSection.tsx` / `MatchRow.tsx` | Day-grouped match grid |
+| `components/TeamMatchupHint.tsx` | Hover (desktop) / tap (mobile) a team on a non-live match to see that team's own last result |
 | `components/LiveBadge.tsx` | Pulsing live indicator, reused in the hero and in rows |
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
@@ -167,6 +168,23 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   live betting action. We only ever read the top-level fields, so what's shown for a live match
   is deliberately the pregame line, not a live-updating one — and it's labeled "Pregame: " in
   that case so it doesn't read as if it were live.
+- **`TeamMatchupHint` shows a team's own last result, not head-to-head history.** "The score of
+  each team's previous matchup" is ambiguous between those two readings; head-to-head between two
+  specific teams has no direct ESPN endpoint and would mean cross-referencing both teams' full
+  schedules for a shared past opponent — unreliable, and often empty for teams that haven't met
+  in over a year. Each team's own most recent completed game (`app/api/team-result/route.ts`,
+  proxying `.../teams/{id}/schedule`) is direct, fast, and always has an answer once a team's
+  played at least once. Fetched lazily per team on first hover/tap and cached client-side by
+  `${espnPath}:${teamId}` — not prefetched for every team on the page, which could mean 100+
+  upstream calls for one page load.
+
+  Hover (desktop) and tap (mobile, no hover) can't both be wired to the same element with the
+  naive handlers: a real tap fires a synthetic `mouseenter` immediately before its `click`
+  (standard touch-to-mouse compatibility-event behavior in every mobile browser, not a testing
+  artifact), so a `mouseenter`-opens / `click`-toggles pair opens and immediately re-closes on
+  every single tap. `TeamMatchupHint` picks one handler set via `matchMedia("(hover: hover)")`
+  (through `useSyncExternalStore`, so it also reacts if a mouse gets connected/disconnected) and
+  never attaches both at once.
 - **Aesthetic-usability effect + speed as trust** — the first paint is server-rendered with no
   loading spinner; the one entrance animation is skipped on initial load (`AnimatePresence
   initial={false}` in `ScoreCenter.tsx`) so nothing delays what the guest already has. Motion is

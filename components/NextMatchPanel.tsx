@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import type { Match } from "@/lib/espn";
+import { LEAGUES_BY_ID } from "@/lib/leagues";
 import { dayLabel, formatOdds, matchTime } from "@/lib/format";
 import { TeamLogo } from "./TeamLogo";
+import { TeamMatchupHint } from "./TeamMatchupHint";
 import { LiveBadge } from "./LiveBadge";
 
 function timeUntil(iso: string): string {
@@ -40,6 +42,7 @@ export function NextMatchPanel({
   const until = timeUntil(match.date);
   const isLive = match.state === "in";
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
+  const espnPath = LEAGUES_BY_ID[match.leagueId]?.espnPath ?? "";
 
   return (
     <div className="rounded-sm border border-border border-l-[3px] border-l-amber bg-surface px-5 py-5 sm:px-7 sm:py-6">
@@ -57,10 +60,18 @@ export function NextMatchPanel({
             {match.away.rank ? `#${match.away.rank}` : ""}
           </span>
         )}
-        <TeamLogo src={match.away.logo} alt={match.away.shortName} size={30} />
-        <span className="truncate font-display text-2xl font-bold leading-none text-ink sm:text-3xl">
-          {match.away.name}
-        </span>
+        <TeamMatchupHint
+          espnPath={espnPath}
+          teamId={match.away.id}
+          teamName={match.away.name}
+          disabled={isLive}
+          gapClassName="gap-3"
+        >
+          <TeamLogo src={match.away.logo} alt={match.away.shortName} size={30} />
+          <span className="truncate font-display text-2xl font-bold leading-none text-ink sm:text-3xl">
+            {match.away.name}
+          </span>
+        </TeamMatchupHint>
         {isLive && (
           <span className="tabular ml-auto font-display text-2xl font-bold text-ink">
             {match.away.score}
@@ -78,10 +89,18 @@ export function NextMatchPanel({
             {match.home.rank ? `#${match.home.rank}` : ""}
           </span>
         )}
-        <TeamLogo src={match.home.logo} alt={match.home.shortName} size={30} />
-        <span className="truncate font-display text-2xl font-bold leading-none text-ink sm:text-3xl">
-          {match.home.name}
-        </span>
+        <TeamMatchupHint
+          espnPath={espnPath}
+          teamId={match.home.id}
+          teamName={match.home.name}
+          disabled={isLive}
+          gapClassName="gap-3"
+        >
+          <TeamLogo src={match.home.logo} alt={match.home.shortName} size={30} />
+          <span className="truncate font-display text-2xl font-bold leading-none text-ink sm:text-3xl">
+            {match.home.name}
+          </span>
+        </TeamMatchupHint>
         {isLive && (
           <span className="tabular ml-auto font-display text-2xl font-bold text-ink">
             {match.home.score}

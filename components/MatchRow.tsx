@@ -1,16 +1,22 @@
 import type { Match, MatchTeam } from "@/lib/espn";
+import { LEAGUES_BY_ID } from "@/lib/leagues";
 import { formatOdds, matchTime } from "@/lib/format";
 import { TeamLogo } from "./TeamLogo";
+import { TeamMatchupHint } from "./TeamMatchupHint";
 import { LiveBadge } from "./LiveBadge";
 
 function TeamLine({
   team,
   showScore,
   showRankGutter,
+  espnPath,
+  hintDisabled,
 }: {
   team: MatchTeam;
   showScore: boolean;
   showRankGutter: boolean;
+  espnPath: string;
+  hintDisabled: boolean;
 }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -19,12 +25,19 @@ function TeamLine({
           {team.rank ? `#${team.rank}` : ""}
         </span>
       )}
-      <TeamLogo src={team.logo} alt={team.shortName} size={22} />
-      <span
-        className={`truncate text-[15px] ${team.winner ? "font-semibold text-ink" : "font-medium text-ink"}`}
+      <TeamMatchupHint
+        espnPath={espnPath}
+        teamId={team.id}
+        teamName={team.name}
+        disabled={hintDisabled}
       >
-        {team.name}
-      </span>
+        <TeamLogo src={team.logo} alt={team.shortName} size={22} />
+        <span
+          className={`truncate text-[15px] ${team.winner ? "font-semibold text-ink" : "font-medium text-ink"}`}
+        >
+          {team.name}
+        </span>
+      </TeamMatchupHint>
       {showScore && (
         <span className="tabular ml-auto pl-2 text-[15px] font-semibold text-ink">
           {team.score}
@@ -45,6 +58,7 @@ export function MatchRow({
 }) {
   const isLive = match.state === "in";
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
+  const espnPath = LEAGUES_BY_ID[match.leagueId]?.espnPath ?? "";
 
   return (
     <div className="rounded-sm border border-border p-3.5">
@@ -57,8 +71,20 @@ export function MatchRow({
       </div>
 
       <div className="mt-2 space-y-1.5">
-        <TeamLine team={match.away} showScore={isLive} showRankGutter={showRankGutter} />
-        <TeamLine team={match.home} showScore={isLive} showRankGutter={showRankGutter} />
+        <TeamLine
+          team={match.away}
+          showScore={isLive}
+          showRankGutter={showRankGutter}
+          espnPath={espnPath}
+          hintDisabled={isLive}
+        />
+        <TeamLine
+          team={match.home}
+          showScore={isLive}
+          showRankGutter={showRankGutter}
+          espnPath={espnPath}
+          hintDisabled={isLive}
+        />
       </div>
 
       {showOdds && match.odds && (
