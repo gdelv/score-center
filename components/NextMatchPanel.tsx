@@ -104,7 +104,9 @@ export function NextMatchPanel({
       </div>
 
       {showOdds && match.odds && (
-        <div className="tabular mt-1.5 text-xs text-ink-dim">{formatOdds(match.odds)}</div>
+        <div className="tabular mt-1.5 text-xs text-ink-dim">
+          {isLive ? `Pregame: ${formatOdds(match.odds)}` : formatOdds(match.odds)}
+        </div>
       )}
     </div>
   );

@@ -156,7 +156,17 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   and `competition.odds[0]` (DraftKings' spread/moneyline line, when posted) — normalized onto
   `Match.broadcast` / `Match.odds` in `lib/espn.ts`. They default off per Hick's Law: most guests
   just want the score, and every card gets denser the moment both are on, so it's a choice the
-  guest opts into rather than clutter everyone pays for by default.
+  guest opts into rather than clutter everyone pays for by default. `formatOdds()` in
+  `lib/format.ts` joins whichever of the spread and over/under is actually present — either can
+  be posted without the other, and dropping the whole line for lacking one used to hide an O/U
+  that was genuinely available.
+
+  `competition.odds[0]`'s top-level `details`/`overUnder` fields are ESPN's **closing (pregame)**
+  line — confirmed by comparing them against that same object's `pointSpread`/`total` sub-fields
+  during a live match, where `open`/`close` stayed put while `current` had already moved with
+  live betting action. We only ever read the top-level fields, so what's shown for a live match
+  is deliberately the pregame line, not a live-updating one — and it's labeled "Pregame: " in
+  that case so it doesn't read as if it were live.
 - **Aesthetic-usability effect + speed as trust** — the first paint is server-rendered with no
   loading spinner; the one entrance animation is skipped on initial load (`AnimatePresence
   initial={false}` in `ScoreCenter.tsx`) so nothing delays what the guest already has. Motion is
