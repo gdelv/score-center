@@ -158,8 +158,13 @@ function toTeam(c: EspnCompetitor | undefined): MatchTeam {
   };
 }
 
-/** Fetches one league's scoreboard for the given date window. Never throws. */
-async function fetchLeagueMatches(
+/**
+ * Fetches one league's scoreboard for the given date window. Never throws.
+ * Exported for `lib/predictions.ts`, which needs a specific past date (a
+ * pick's kickoff day) rather than the rolling "yesterday onward" window
+ * `fetchAllUpcomingMatches` uses — the same normalization applies either way.
+ */
+export async function fetchLeagueMatches(
   league: LeagueConfig,
   fromYmd: string,
   toYmd: string,
@@ -227,7 +232,8 @@ async function fetchLeagueMatches(
   }
 }
 
-function formatYmd(d: Date): string {
+/** Exported for `lib/predictions.ts` — same YYYYMMDD format ESPN's `dates` param expects. */
+export function formatYmd(d: Date): string {
   return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(
     d.getUTCDate(),
   ).padStart(2, "0")}`;

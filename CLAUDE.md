@@ -9,10 +9,11 @@ any code. Heed deprecation notices.
 # Score Center — Developer Guide
 
 ## What this is
-A guest-only board of every upcoming soccer, NFL, and ranked college football match. No
-accounts, no login — visitors pick which leagues they want to see and the choice is remembered
-on that device. Not tied to a specific paying client; it's a standalone product living alongside
-the other projects in `businessProjects/`.
+A guest-only board of every upcoming soccer, NFL, and ranked college football match, plus a
+`/predictions` page tracking college football spread parlays from Claude, ChatGPT, and Gemini
+against real results. No accounts, no login — visitors pick which leagues they want to see and
+the choice is remembered on that device. Not tied to a specific paying client; it's a standalone
+product living alongside the other projects in `businessProjects/`.
 
 ## Stack
 - **Framework:** Next.js 16, App Router, TypeScript strict
@@ -21,7 +22,9 @@ the other projects in `businessProjects/`.
 - **Animations:** Framer Motion (client components only)
 - **Fonts:** `next/font/google` — Big Shoulders (display) + IBM Plex Sans (body)
 - **Data:** ESPN's public scoreboard JSON endpoints (see below) — no API key, no backend, no
-  database
+  database. The one exception is `data/predictions.json`, a small committed data file (not a
+  database — no writes at runtime, no user ever touches it) that holds AI parlay picks; see
+  "Predictions data" below.
 - **Deployment:** Netlify + `@netlify/plugin-nextjs`
 
 ## Commands
@@ -83,6 +86,45 @@ from this array. Two optional per-league escape hatches exist for leagues with u
 network; everything downstream consumes the normalized `Match` type, so a replacement data
 source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 
+## Predictions data (`/predictions`)
+Three "contestants" — Claude, ChatGPT, and Gemini — each build against-the-spread college
+football parlays (3/6/9/12 legs) weekly. The user asks each AI separately (outside this app) and
+tells Claude Code the picks; there's no on-page submission form and no database — see the "How to
+add a new week's picks" question this was built to answer, below.
+
+**Data model** (`lib/predictions.ts`, data lives in `data/predictions.json`): a `PredictionsData`
+is `{ weeks: Week[] }`; each `Week` has an `id`, a display `label`, and `parlays: Parlay[]`; each
+`Parlay` is one contestant's `legCount`-leg ticket, `legs: PredictionLeg[]`. Each `PredictionLeg`
+is one game: `matchId` (must equal a real `Match.id` this app's own data layer would produce —
+`college-football-{espnEventId}`, get it from `/api/matches` or ESPN's scoreboard for that date),
+both teams' names, which side was `pick`ed, and the spread `line` *relative to the picked side*
+(e.g. `-3.5` if the pick is favored by 3.5, `+7.5` if the pick is an underdog getting 7.5).
+
+**How to add a new week's picks:** create a new entry in the `weeks` array in
+`data/predictions.json` with a fresh `id`/`label`, one `Parlay` per contestant per leg-count they
+did that week, find each game's real `matchId` via `/api/matches` (or ESPN's college-football
+scoreboard for that date) so grading can find it, then commit and let it deploy. There is
+deliberately no other step — no separate "grade this week" action, no scores to enter by hand.
+
+**Grading is fully dynamic, not recorded once and left stale** (`gradeWeeks` in
+`lib/predictions.ts`, same `unstable_cache` + 120s-revalidate pattern as
+`fetchAllUpcomingMatches`, polled the same way by `PredictionsBoard.tsx`). Every page load
+re-fetches the actual college-football scoreboard for every unique date any leg needs (via
+`fetchLeagueMatches`, exported from `lib/espn.ts` for exactly this reuse — it takes a specific
+date range rather than the rolling "yesterday onward" window `fetchAllUpcomingMatches` uses) and
+computes each leg's status fresh: `pending` (game hasn't started), `live` (in progress — a
+`covering` boolean is computed the same way as final grading, so a live leg's current lean shows
+without pretending it's final), `hit`/`miss`/`push` once the game ends. A parlay's own status
+(`pending`/`alive`/`won`/`busted`) follows real parlay rules: any missed leg busts the whole
+thing regardless of the rest; a push neither wins nor loses its leg. This means a "busted"
+parlay never quietly reverts, and a from-last-week parlay whose final leg just finished updates
+on its own — nothing about this needed last week's grade to be written down anywhere.
+
+**Why against-the-spread, not moneyline or a mix:** it's the standard shape for a real parlay and
+matches the betting-odds data already on the main board (same DraftKings-via-ESPN source), and a
+single bet type keeps grading (and comparing the three AIs) uniform instead of needing a
+type-specific evaluator per leg.
+
 ## Component map
 | Component | Purpose |
 |-----------|---------|
@@ -98,6 +140,8 @@ source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 | `components/TeamMatchupHint.tsx` | Hover (desktop) / tap (mobile) a team on a non-live match to see that team's own last result |
 | `components/LiveBadge.tsx` | Pulsing live indicator, reused in the hero and in rows |
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
+| `components/PredictionsBoard.tsx` | Client orchestrator for `/predictions` — same polling pattern as `ScoreCenter.tsx` |
+| `components/PredictionsLeaderboard.tsx` / `PredictionsWeek.tsx` / `ParlayCard.tsx` | Season record cards, per-week grouping, one parlay's legs |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
 | `lib/espn.ts`, `lib/leagues.ts`, `lib/format.ts` | Data fetching, league config, date/time formatting |

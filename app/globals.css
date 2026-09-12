@@ -10,6 +10,7 @@
   --amber: #f5a623;
   --amber-ink: #2a1a02;
   --turf: #35c25e;
+  --loss: #e0524a;
   --focus: #f5a623;
 }
 
@@ -24,6 +25,7 @@
     --amber: #c97a00;
     --amber-ink: #ffffff;
     --turf: #1e9a47;
+    --loss: #c53d35;
     --focus: #c97a00;
   }
 }
@@ -38,6 +40,7 @@
   --color-amber: var(--amber);
   --color-amber-ink: var(--amber-ink);
   --color-turf: var(--turf);
+  --color-loss: var(--loss);
   --font-display: var(--font-big-shoulders);
   --font-body: var(--font-plex);
 }

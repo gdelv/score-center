@@ -76,7 +76,7 @@ export function ScoreCenter({
       <LiveTicker liveMatches={liveMatches} recentFinishedMatches={recentFinishedMatches} />
 
       <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6">
-        <Header fetchedAt={fetchedAt} />
+        <Header fetchedAt={fetchedAt} active="scores" />
 
         <div className="flex flex-wrap items-center justify-between gap-3 py-4">
           <SportTabs active={tab} onChange={setTab} />
