@@ -129,6 +129,11 @@ thing regardless of the rest; a push neither wins nor loses its leg. This means 
 parlay never quietly reverts, and a from-last-week parlay whose final leg just finished updates
 on its own — nothing about this needed last week's grade to be written down anywhere.
 
+`ParlayCard.tsx`'s per-leg status column shows whichever of time/score is actually meaningful
+right now, not a static dash: kickoff time (via `matchTime`, same helper and same local-timezone
+convention as the main scores page) while `pending`, the live score while `live`, the final score
+once decided — matching how the main board itself represents a match at each stage.
+
 **Why against-the-spread, not moneyline or a mix:** it's the standard shape for a real parlay and
 matches the betting-odds data already on the main board (same DraftKings-via-ESPN source), and a
 single bet type keeps grading (and comparing the three AIs) uniform instead of needing a

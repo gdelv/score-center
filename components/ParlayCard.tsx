@@ -1,4 +1,5 @@
 import type { GradedLeg, GradedParlay, ParlayStatus } from "@/lib/predictions";
+import { matchTime } from "@/lib/format";
 import { TeamLogo } from "./TeamLogo";
 import { LegReasonHint } from "./LegReasonHint";
 
@@ -18,7 +19,11 @@ const STATUS_COLOR: Record<ParlayStatus, string> = {
 
 function LegStatus({ leg }: { leg: GradedLeg }) {
   if (leg.status === "pending") {
-    return <span className="text-xs text-ink-dim">—</span>;
+    return (
+      <span className="tabular text-xs text-ink-dim" suppressHydrationWarning>
+        {matchTime(leg.kickoff)}
+      </span>
+    );
   }
 
   if (leg.status === "push") {
