@@ -136,20 +136,30 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   names) instead of one flat list.
 - **Von Restorff effect (isolation)** — live matches get the one non-amber color (turf green)
   and a pulsing dot so they stand out from merely-scheduled ones.
-- **`LiveTicker` is intentionally unfiltered.** It shows every live match across every league,
-  regardless of the guest's sport tab or league selection below it — a global pulse of "what's
-  happening right now" is a different job than the personalized list, the same way a stock
-  ticker shows the whole market rather than just your portfolio. It bleeds full-width outside
-  the page's max-width container (real broadcast/stock tickers always do), and pauses on hover
-  so a guest can actually read one line. When nothing is live it keeps the same bar at the same
-  height (no layout jump the instant a match goes live) but shows a static "No live matches
-  right now" message instead of the scrolling track.
+- **`LiveTicker` is intentionally unfiltered, and has a three-tier fallback.** It shows every
+  live match across every league, regardless of the guest's sport tab or league selection below
+  it — a global pulse of "what's happening right now" is a different job than the personalized
+  list, the same way a stock ticker shows the whole market rather than just your portfolio. It
+  bleeds full-width outside the page's max-width container (real broadcast/stock tickers always
+  do), and pauses on hover so a guest can actually read one line.
+
+  Falls back in order: **live matches** (pulsing dot, "AWAY 3 – 2 HOME", elapsed time) →
+  **today's finished games**, if nothing's live (no dot — that signal is reserved for genuinely
+  live — broadcast-ticker style: `"NCAAF | UF 33 @ FSU 32 F | LSU 35 @ Alabama 34 F"`) → a static
+  "No games yet today" message, only if neither exists (e.g. before anything's kicked off). Same
+  bar, same height in every state — no layout jump as it moves between them.
+
+  This is why `fetchLeagueMatches` in `lib/espn.ts` no longer filters out `state === "post"`
+  events — the upcoming-matches board still excludes them itself (`ScoreCenter.tsx`'s
+  `filteredMatches` filters `state !== "post"`), but the ticker's finished-today fallback needs
+  them. Safe to include unconditionally because the fetch window always starts at today, so a
+  finished game in the result is necessarily from today, never history.
 
   The seamless-loop trick (scroll a doubled track exactly -50%) only works if that first half is
-  already wider than the viewport — with just 1-2 live matches it isn't, and the bar runs out of
-  content partway across the screen instead of looping cleanly. `LiveTicker.tsx` repeats the
-  match list up to a minimum item count *before* doubling it for the loop, so this holds
-  regardless of how few (or many) matches are live at once.
+  already wider than the viewport — with just 1-2 matches it isn't, and the bar runs out of
+  content partway across the screen instead of looping cleanly. `LiveTicker.tsx`'s shared
+  `ScrollingBar` repeats whichever match list it's given up to a minimum item count *before*
+  doubling it for the loop, so this holds regardless of how few (or many) matches there are.
 
 - **Broadcast and odds are opt-in, off by default** (`DisplayToggles.tsx` /
   `hooks/useDisplayPrefs.ts`, same `useSyncExternalStore` + `localStorage` pattern as the league

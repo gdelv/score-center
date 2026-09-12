@@ -49,14 +49,19 @@ export function ScoreCenter({
   }, []);
 
   // Deliberately unfiltered by league/sport — the ticker is a pulse of
-  // everything live right now, independent of what the guest has chosen
-  // to follow below it.
+  // everything live (or, failing that, everything finished today) right
+  // now, independent of what the guest has chosen to follow below it.
   const liveMatches = useMemo(() => matches.filter((m) => m.state === "in"), [matches]);
+  const finishedTodayMatches = useMemo(
+    () => matches.filter((m) => m.state === "post"),
+    [matches],
+  );
 
   const filteredMatches = useMemo(
     () =>
       matches.filter(
-        (m) => (tab === "all" || m.sport === tab) && selected.has(m.leagueId),
+        (m) =>
+          m.state !== "post" && (tab === "all" || m.sport === tab) && selected.has(m.leagueId),
       ),
     [matches, tab, selected],
   );
@@ -66,7 +71,7 @@ export function ScoreCenter({
 
   return (
     <>
-      <LiveTicker matches={liveMatches} />
+      <LiveTicker liveMatches={liveMatches} finishedTodayMatches={finishedTodayMatches} />
 
       <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6">
         <Header fetchedAt={fetchedAt} />

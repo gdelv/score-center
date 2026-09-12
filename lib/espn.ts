@@ -179,44 +179,47 @@ async function fetchLeagueMatches(
     const data: EspnScoreboardResponse = await res.json();
     const events = data.events ?? [];
 
-    return events
-      .filter((e) => e.status.type.state !== "post")
-      .map((e) => {
-        const competition = e.competitions[0];
-        const competitors = competition?.competitors ?? [];
-        const home = competitors.find((c) => c.homeAway === "home");
-        const away = competitors.find((c) => c.homeAway === "away");
-        const broadcastNames = competition?.broadcasts?.[0]?.names;
-        const rawOdds = competition?.odds?.[0];
+    // Includes finished ("post") games too — the fetch window always starts
+    // at today, so any finished game returned is necessarily from today, not
+    // history. Callers that only want the upcoming board filter state==="post"
+    // back out themselves; the live ticker's finished-game fallback wants
+    // exactly these.
+    return events.map((e) => {
+      const competition = e.competitions[0];
+      const competitors = competition?.competitors ?? [];
+      const home = competitors.find((c) => c.homeAway === "home");
+      const away = competitors.find((c) => c.homeAway === "away");
+      const broadcastNames = competition?.broadcasts?.[0]?.names;
+      const rawOdds = competition?.odds?.[0];
 
-        return {
-          id: `${league.id}-${e.id}`,
-          sport: league.sport,
-          leagueId: league.id,
-          leagueName: league.name,
-          leagueShortName: league.shortName,
-          accent: league.accent,
-          date: e.date,
-          state: e.status.type.state,
-          statusDetail: e.status.type.shortDetail || e.status.type.detail,
-          home: toTeam(home),
-          away: toTeam(away),
-          venue: competition?.venue?.fullName ?? null,
-          broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
-          // Built whenever either line is present — a spread isn't always
-          // posted this early, but an over/under often already is (or vice
-          // versa), and dropping the whole thing for lacking one is why
-          // over/under could go missing even when ESPN actually has it.
-          odds:
-            rawOdds && (rawOdds.details || rawOdds.overUnder != null)
-              ? {
-                  details: rawOdds.details ?? null,
-                  overUnder: rawOdds.overUnder ?? null,
-                  provider: rawOdds.provider?.displayName ?? null,
-                }
-              : null,
-        };
-      });
+      return {
+        id: `${league.id}-${e.id}`,
+        sport: league.sport,
+        leagueId: league.id,
+        leagueName: league.name,
+        leagueShortName: league.shortName,
+        accent: league.accent,
+        date: e.date,
+        state: e.status.type.state,
+        statusDetail: e.status.type.shortDetail || e.status.type.detail,
+        home: toTeam(home),
+        away: toTeam(away),
+        venue: competition?.venue?.fullName ?? null,
+        broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
+        // Built whenever either line is present — a spread isn't always
+        // posted this early, but an over/under often already is (or vice
+        // versa), and dropping the whole thing for lacking one is why
+        // over/under could go missing even when ESPN actually has it.
+        odds:
+          rawOdds && (rawOdds.details || rawOdds.overUnder != null)
+            ? {
+                details: rawOdds.details ?? null,
+                overUnder: rawOdds.overUnder ?? null,
+                provider: rawOdds.provider?.displayName ?? null,
+              }
+            : null,
+      };
+    });
   } catch {
     // A single upstream hiccup should never take down the whole board.
     return [];
@@ -271,6 +274,12 @@ const cachedFetchAllUpcomingMatches = unstable_cache(
  * (incl. today), and caches the resulting — small, normalized — match list
  * for 120s. Caching happens here rather than on the individual upstream
  * fetches: see fetchLeagueMatches for why.
+ *
+ * Despite the name, this includes today's *finished* games too (state
+ * "post") — the upcoming-matches board filters those back out itself, but
+ * the live ticker wants them as its finished-today fallback. See
+ * fetchLeagueMatches for why that's safe (the window never reaches into
+ * the past, so a finished game here is always from today).
  */
 export function fetchAllUpcomingMatches(days = 14): Promise<Match[]> {
   return cachedFetchAllUpcomingMatches(days);
