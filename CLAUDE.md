@@ -326,8 +326,33 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   the server-rendered HTML and the client's hydration pass, and throw a hydration error rather
   than a fixable text-mismatch warning. Keeping the *bucketing* decision on UTC (timezone-
   independent, so server and client always agree) while `matchTime`'s displayed clock time stays
-  on the guest's local timezone (intentional — see `suppressHydrationWarning` on its render
-  sites) is what makes both work: correct grouping *and* a kickoff time in the guest's own zone.
+  on the guest's local timezone is what makes both work: correct grouping *and* a kickoff time in
+  the guest's own zone.
+- **`suppressHydrationWarning` alone is not enough for locale/timezone-dependent text — use
+  `hooks/useHasMounted.ts` instead.** A guest reported kickoff times showing as ~12:30am for
+  matches that don't actually kick off then; the real cause was every `matchTime()`/`dayLabel()`/
+  "Updated N ago" render site being wrapped in `suppressHydrationWarning`, which only silences the
+  console warning — it does nothing to stop the *server-computed* value (rendered using the build/
+  ISR server's UTC clock, not the guest's) from being visibly painted first and only corrected once
+  client hydration finishes. On a slower device, or whenever hydration lags first paint, that wrong
+  value is what the guest actually sees, confirmed by `curl`ing the prerendered HTML directly and
+  finding the wrong local-format time baked into the static markup. The fix in `MatchRow.tsx`,
+  `NextMatchPanel.tsx`, `ParlayCard.tsx`, and `Header.tsx` is to gate the locale-dependent text
+  behind `useHasMounted()` (a `useSyncExternalStore` hook that's `false` on the server and first
+  client paint, `true` from then on) instead of `suppressHydrationWarning`, rendering nothing (or a
+  non-breaking space, to hold layout height) until mounted. Server output and first client paint
+  are then textually identical — there's no mismatch to suppress, and no device can ever paint a
+  wrong clock value, not even for an instant. **Any new render site for `matchTime`, `dayLabel`, or
+  similar guest-local-time text must use this same pattern, not `suppressHydrationWarning`.** The
+  one deliberate exception left in place is `DateSection.tsx`'s far-out weekday-name label (the
+  `dayLabel` branch used only for matches 2+ days out) — it's still on
+  `suppressHydrationWarning`, because mount-gating it would flash every visible date-section
+  heading empty on every page load, and the actual exposure is much narrower than the clock-time
+  bug: the UTC-based day *bucketing* is already guaranteed correct (see above), so this can only
+  ever show a weekday name one calendar day off, and only for a guest whose local time briefly
+  disagrees with UTC about which day it is (i.e. only near their own local midnight, on a match
+  that happens to be exactly 2 days out) — a far rarer and less confusing miss than a wrong AM/PM
+  kickoff time.
 - ESPN's endpoint is public but unofficial and undocumented — no SLA, no versioning guarantee.
   If a league's scoreboard starts returning empty or errors, check the URL shape still matches
   by hand before assuming the code is at fault.

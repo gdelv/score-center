@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useHasMounted } from "@/hooks/useHasMounted";
 
 function secondsAgo(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -35,6 +36,9 @@ export function Header({
     return () => clearInterval(id);
   }, []);
 
+  // See MatchRow for why: mount-gated instead of suppressHydrationWarning.
+  const mounted = useHasMounted();
+
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-border py-5">
       <div className="flex items-center gap-6">
@@ -57,8 +61,8 @@ export function Header({
           ))}
         </nav>
       </div>
-      <span className="text-xs text-ink-dim" suppressHydrationWarning>
-        Updated {agoLabel(secondsAgo(fetchedAt))}
+      <span className="text-xs text-ink-dim">
+        {mounted ? `Updated ${agoLabel(secondsAgo(fetchedAt))}` : " "}
       </span>
     </header>
   );

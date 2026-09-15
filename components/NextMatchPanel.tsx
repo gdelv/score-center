@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Match } from "@/lib/espn";
 import { LEAGUES_BY_ID } from "@/lib/leagues";
 import { dayLabel, formatOdds, matchTime } from "@/lib/format";
+import { useHasMounted } from "@/hooks/useHasMounted";
 import { TeamLogo } from "./TeamLogo";
 import { TeamMatchupHint } from "./TeamMatchupHint";
 import { LiveBadge } from "./LiveBadge";
@@ -43,6 +44,10 @@ export function NextMatchPanel({
   const isLive = match.state === "in";
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
   const espnPath = LEAGUES_BY_ID[match.leagueId]?.espnPath ?? "";
+  // See MatchRow for why: locale time/countdown text is gated on mount
+  // rather than suppressed, so the guest's browser never has a chance to
+  // paint a build-server-timezone value even for an instant.
+  const mounted = useHasMounted();
 
   return (
     <div className="rounded-sm border border-border border-l-[3px] border-l-amber bg-surface px-5 py-5 sm:px-7 sm:py-6">
@@ -109,17 +114,16 @@ export function NextMatchPanel({
         )}
       </div>
 
-      <div className="tabular mt-4 text-sm font-semibold text-amber" suppressHydrationWarning>
+      <div className="tabular mt-4 text-sm font-semibold text-amber">
         {isLive ? (
           <LiveBadge detail={match.statusDetail} />
-        ) : (
+        ) : mounted ? (
           <>
             {dayLabel(match.date)} · {matchTime(match.date)}
-            <span className="text-ink-dim" suppressHydrationWarning>
-              {" "}
-              — {until}
-            </span>
+            <span className="text-ink-dim"> — {until}</span>
           </>
+        ) : (
+          <span className="text-ink-dim">&nbsp;</span>
         )}
       </div>
 

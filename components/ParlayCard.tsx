@@ -1,5 +1,8 @@
+"use client";
+
 import type { GradedLeg, GradedParlay, ParlayStatus } from "@/lib/predictions";
 import { matchTime } from "@/lib/format";
+import { useHasMounted } from "@/hooks/useHasMounted";
 import { TeamLogo } from "./TeamLogo";
 import { LegReasonHint } from "./LegReasonHint";
 
@@ -18,11 +21,12 @@ const STATUS_COLOR: Record<ParlayStatus, string> = {
 };
 
 function LegStatus({ leg }: { leg: GradedLeg }) {
+  // See MatchRow for why: mount-gated instead of suppressHydrationWarning.
+  const mounted = useHasMounted();
+
   if (leg.status === "pending") {
     return (
-      <span className="tabular text-xs text-ink-dim" suppressHydrationWarning>
-        {matchTime(leg.kickoff)}
-      </span>
+      <span className="tabular text-xs text-ink-dim">{mounted ? matchTime(leg.kickoff) : " "}</span>
     );
   }
 

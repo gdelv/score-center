@@ -1,6 +1,7 @@
 import type { Match, MatchTeam } from "@/lib/espn";
 import { LEAGUES_BY_ID } from "@/lib/leagues";
 import { formatOdds, matchTime } from "@/lib/format";
+import { useHasMounted } from "@/hooks/useHasMounted";
 import { TeamLogo } from "./TeamLogo";
 import { TeamMatchupHint } from "./TeamMatchupHint";
 import { LiveBadge } from "./LiveBadge";
@@ -59,12 +60,23 @@ export function MatchRow({
   const isLive = match.state === "in";
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
   const espnPath = LEAGUES_BY_ID[match.leagueId]?.espnPath ?? "";
+  // Kickoff time is in the guest's own timezone (matchTime), but this page
+  // is statically prerendered — the server/build machine's timezone (not
+  // the guest's) is what would otherwise get baked into that first paint.
+  // Rendering nothing here until mounted, identically on server and first
+  // client paint, means there's no mismatch to suppress and no wrong clock
+  // time ever gets shown, even for an instant.
+  const mounted = useHasMounted();
 
   return (
     <div className="rounded-sm border border-border p-3.5">
       <div className="flex items-center justify-between gap-3 text-[11px] text-ink-dim">
-        <span className="tabular truncate" suppressHydrationWarning>
-          {isLive ? match.leagueShortName : `${matchTime(match.date)} · ${match.leagueShortName}`}
+        <span className="tabular truncate">
+          {isLive
+            ? match.leagueShortName
+            : mounted
+              ? `${matchTime(match.date)} · ${match.leagueShortName}`
+              : match.leagueShortName}
           {match.seriesLeg ? ` · ${match.seriesLeg}` : ""}
           {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
         </span>
