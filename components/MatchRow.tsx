@@ -65,6 +65,7 @@ export function MatchRow({
       <div className="flex items-center justify-between gap-3 text-[11px] text-ink-dim">
         <span className="tabular truncate" suppressHydrationWarning>
           {isLive ? match.leagueShortName : `${matchTime(match.date)} · ${match.leagueShortName}`}
+          {match.seriesLeg ? ` · ${match.seriesLeg}` : ""}
           {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
         </span>
         {match.venue && <span className="truncate text-right">{match.venue}</span>}
@@ -86,6 +87,12 @@ export function MatchRow({
           hintDisabled={isLive}
         />
       </div>
+
+      {match.seriesLeg && (
+        <div className="tabular mt-2 text-[11px] text-ink-dim">
+          Agg {match.away.aggregateScore ?? 0}–{match.home.aggregateScore ?? 0}
+        </div>
+      )}
 
       {showOdds && match.odds && (
         <div className="tabular mt-2 text-[11px] text-ink-dim">

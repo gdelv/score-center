@@ -49,6 +49,7 @@ export function NextMatchPanel({
       <div className="flex items-center justify-between gap-3 text-xs text-ink-dim">
         <span className="truncate">
           {match.leagueName}
+          {match.seriesLeg ? ` · ${match.seriesLeg}` : ""}
           {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
         </span>
         {match.venue && <span className="hidden truncate sm:inline">{match.venue}</span>}
@@ -121,6 +122,12 @@ export function NextMatchPanel({
           </>
         )}
       </div>
+
+      {match.seriesLeg && (
+        <div className="tabular mt-1.5 text-xs text-ink-dim">
+          Agg {match.away.aggregateScore ?? 0}–{match.home.aggregateScore ?? 0}
+        </div>
+      )}
 
       {showOdds && match.odds && (
         <div className="tabular mt-1.5 text-xs text-ink-dim">

@@ -12,6 +12,14 @@ export interface MatchTeam {
   winner: boolean;
   /** AP Top 25 rank (1-25), only ever set for `filterToRankedTeams` leagues. */
   rank: number | null;
+  /**
+   * Combined score across every leg of a multi-leg tie so far — e.g. a
+   * Copa Libertadores quarterfinal is two legs, and this is what actually
+   * decides who advances, not either leg's score alone. Only set when
+   * `Match.seriesLeg` is non-null (see there for why); null otherwise,
+   * including for every single-match competition (NFL, EPL, etc.).
+   */
+  aggregateScore: number | null;
 }
 
 export interface MatchOdds {
@@ -37,6 +45,8 @@ export interface Match {
   venue: string | null;
   broadcast: string | null;
   odds: MatchOdds | null;
+  /** e.g. "2nd Leg" — only set for a multi-leg tie (see `MatchTeam.aggregateScore`); null for every single-match competition. */
+  seriesLeg: string | null;
 }
 
 // Raw ESPN scoreboard shapes, narrowed to only the fields we read.
@@ -54,6 +64,7 @@ interface EspnCompetitor {
   team: EspnTeamRef;
   score?: string;
   winner?: boolean;
+  aggregateScore?: number;
 }
 
 interface EspnBroadcast {
@@ -75,6 +86,8 @@ interface EspnCompetition {
   venue?: EspnVenue;
   broadcasts?: EspnBroadcast[];
   odds?: EspnOdds[];
+  leg?: { displayValue?: string };
+  series?: { totalCompetitions?: number };
 }
 
 interface EspnStatusType {
@@ -135,7 +148,7 @@ async function fetchRankedTeams(): Promise<Map<string, number>> {
   }
 }
 
-function toTeam(c: EspnCompetitor | undefined): MatchTeam {
+function toTeam(c: EspnCompetitor | undefined, isMultiLegTie: boolean): MatchTeam {
   if (!c) {
     return {
       id: "unknown",
@@ -145,6 +158,7 @@ function toTeam(c: EspnCompetitor | undefined): MatchTeam {
       score: null,
       winner: false,
       rank: null,
+      aggregateScore: null,
     };
   }
   return {
@@ -155,6 +169,7 @@ function toTeam(c: EspnCompetitor | undefined): MatchTeam {
     score: c.score ?? null,
     winner: Boolean(c.winner),
     rank: null,
+    aggregateScore: isMultiLegTie && c.aggregateScore != null ? c.aggregateScore : null,
   };
 }
 
@@ -197,6 +212,10 @@ export async function fetchLeagueMatches(
       const away = competitors.find((c) => c.homeAway === "away");
       const broadcastNames = competition?.broadcasts?.[0]?.names;
       const rawOdds = competition?.odds?.[0];
+      // Group-stage/final matches are single games (totalCompetitions
+      // absent or 1) — only a knockout-round two-legged tie has this > 1,
+      // and only then does an aggregate score mean anything.
+      const isMultiLegTie = (competition?.series?.totalCompetitions ?? 1) > 1;
 
       return {
         id: `${league.id}-${e.id}`,
@@ -208,10 +227,11 @@ export async function fetchLeagueMatches(
         date: e.date,
         state: e.status.type.state,
         statusDetail: e.status.type.shortDetail || e.status.type.detail,
-        home: toTeam(home),
-        away: toTeam(away),
+        home: toTeam(home, isMultiLegTie),
+        away: toTeam(away, isMultiLegTie),
         venue: competition?.venue?.fullName ?? null,
         broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
+        seriesLeg: isMultiLegTie ? (competition?.leg?.displayValue ?? null) : null,
         // Built whenever either line is present — a spread isn't always
         // posted this early, but an over/under often already is (or vice
         // versa), and dropping the whole thing for lacking one is why

@@ -96,6 +96,19 @@ with unusual volume or upstream quirks:
   than globally, since ESPN's numeric team IDs aren't unique across sports — an NFL or soccer
   team's ID could coincidentally match a ranked college team's ID.
 
+**Aggregate scores for multi-leg ties** (`conmebol.libertadores`/`conmebol.sudamericana`
+knockout rounds — a quarterfinal there is two legs, home and away, and the combined score across
+both is what actually decides who advances, not either leg alone). ESPN's raw event data carries
+this on `competition.series` (`totalCompetitions`, `title`) and per-competitor `aggregateScore`,
+plus `competition.leg.displayValue` (e.g. `"2nd Leg"`). `lib/espn.ts` only trusts any of this when
+`series.totalCompetitions > 1` — group-stage and final matches are single games with this field
+absent or `1`, and treating a stray `aggregateScore` as meaningful there would be wrong — and sets
+`Match.seriesLeg` / `MatchTeam.aggregateScore` to `null` for every other league and every
+single-match competition. `MatchRow.tsx` and `NextMatchPanel.tsx` render an "Agg {away}–{home}"
+line only when `seriesLeg` is non-null, so this never shows for the vast majority of matches that
+have no concept of a tie. Not shown in `LiveTicker.tsx` — scope kept to the two places a guest is
+actually reading one match's full context, not the fast-scanning ticker.
+
 **If ESPN changes or removes an endpoint:** `lib/espn.ts` is the only file that talks to the
 network; everything downstream consumes the normalized `Match` type, so a replacement data
 source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
