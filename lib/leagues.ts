@@ -109,6 +109,32 @@ export const LEAGUES: LeagueConfig[] = [
     shortName: "Liga MX",
     accent: "#0B7B3E",
   },
+  {
+    id: "conmebol.libertadores",
+    sport: "soccer",
+    espnPath: "soccer/conmebol.libertadores",
+    name: "Copa Libertadores",
+    shortName: "Libertadores",
+    accent: "#8B6F2E",
+  },
+  {
+    id: "conmebol.sudamericana",
+    sport: "soccer",
+    espnPath: "soccer/conmebol.sudamericana",
+    name: "Copa Sudamericana",
+    shortName: "Sudamericana",
+    accent: "#B5502C",
+    // Unlike every other league here, ESPN's own scoreboard endpoint for
+    // this specific competition returns a 400 for windows past ~9-10 days —
+    // confirmed reproducible, not rate-limit flakiness (same query fails
+    // consistently on retry) — likely because fixtures for the competition's
+    // current round aren't resolved that far ahead server-side. Since
+    // fetchLeagueMatches makes one request for the whole window, that
+    // failure was all-or-nothing: it wiped out even the real near-term
+    // matches a narrower query returns fine. Libertadores has no such limit
+    // at the full 14-day window, so this is scoped to Sudamericana only.
+    maxWindowDays: 7,
+  },
 ];
 
 export const LEAGUES_BY_ID: Record<string, LeagueConfig> = Object.fromEntries(

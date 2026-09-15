@@ -64,15 +64,29 @@ the one place caching happens. `app/page.tsx` calls it server-side for the first
 board current without a page reload.
 
 **Adding a league:** add an entry to `LEAGUES` in `lib/leagues.ts` with its ESPN path segment
-(soccer slugs look like `eng.1`, `esp.1`, `uefa.champions`; football is `football/nfl` or
-`football/college-football`; find new ones by hitting
+(soccer slugs look like `eng.1`, `esp.1`, `uefa.champions`, `conmebol.libertadores`; football is
+`football/nfl` or `football/college-football`; find new ones by hitting
 `site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/scoreboard` and checking for a 200), a
 `shortName` for the compact list label, and an `accent` hex used only for that league's filter
 checkbox tint. No other code changes needed — the filter list, tabs, and match feed all derive
-from this array. Two optional per-league escape hatches exist for leagues with unusual volume
-(see `college-football`'s entry for both in use):
-- `maxWindowDays` — caps the lookahead window below the global 14 days, for leagues whose raw
-  payload would otherwise blow past the 2MB-per-fetch-entry ceiling mentioned above.
+from this array. **Before shipping a new league, actually test its date-range behavior** — verify
+a plain 200 isn't enough, see below. Two optional per-league escape hatches exist for leagues
+with unusual volume or upstream quirks:
+- `maxWindowDays` — caps the lookahead window below the global 14 days. Two different reasons to
+  use this so far, both real, both found by testing rather than assumption:
+  - **Payload size** (`college-football`) — its raw payload for the full window blows past the
+    2MB-per-fetch-entry ceiling mentioned above.
+  - **Upstream range limit** (`conmebol.sudamericana`) — ESPN's own scoreboard endpoint for this
+    specific competition returns a 400 for a `dates=` span past roughly 9-10 days, confirmed
+    reproducible on retry (not rate-limit flakiness) — likely because fixtures for the
+    competition's current round aren't resolved that far out server-side yet. Since
+    `fetchLeagueMatches` requests the whole window as one call, that failure was all-or-nothing:
+    it silently wiped out even the real near-term matches a narrower query returns fine.
+    `conmebol.libertadores` has no such limit at the full 14-day window even though it's the
+    same confederation's other continental cup — this is genuinely per-competition, not
+    something you can assume from one CONMEBOL competition to another. If a new league's board
+    entries look sparse or empty despite the league clearly having real fixtures, binary-search
+    the `dates=` span by hand against the raw ESPN URL before assuming it's a code bug.
 - `filterToRankedTeams` — restricts the league to games with at least one AP Top 25 team, via
   `fetchRankedTeams()`, and labels each ranked team with its current number (`MatchTeam.rank`,
   rendered as `#N` in `MatchRow`/`NextMatchPanel`). College football runs ~80 games on a single
