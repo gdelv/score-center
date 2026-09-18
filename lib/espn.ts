@@ -184,20 +184,45 @@ export async function fetchLeagueMatches(
   fromYmd: string,
   toYmd: string,
 ): Promise<Match[]> {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/${league.espnPath}/scoreboard?dates=${fromYmd}-${toYmd}`;
+  const base = `https://site.api.espn.com/apis/site/v2/sports/${league.espnPath}/scoreboard`;
+
+  // Deliberately uncached: ESPN's raw scoreboard payload for a busy league
+  // (college football especially) can run several MB, over Next.js's 2MB
+  // fetch-cache entry limit — `next.revalidate` would just fail to cache it
+  // and log a warning on every request. We cache the small, normalized
+  // result instead, one level up in fetchAllUpcomingMatches.
+  async function fetchEvents(dates: string): Promise<EspnEvent[] | null> {
+    try {
+      const res = await fetch(`${base}?dates=${dates}`);
+      if (!res.ok) return null;
+      const data: EspnScoreboardResponse = await res.json();
+      return data.events ?? [];
+    } catch {
+      return null;
+    }
+  }
 
   try {
-    // Deliberately uncached here: ESPN's raw scoreboard payload for a busy
-    // league (college football especially) can run several MB, over
-    // Next.js's 2MB fetch-cache entry limit — `next.revalidate` would just
-    // fail to cache it and log a warning on every request. We cache the
-    // small, normalized result instead, one level up in
-    // fetchAllUpcomingMatches.
-    const res = await fetch(url);
-    if (!res.ok) return [];
+    let events = await fetchEvents(fromYmd === toYmd ? fromYmd : `${fromYmd}-${toYmd}`);
 
-    const data: EspnScoreboardResponse = await res.json();
-    const events = data.events ?? [];
+    if (events === null) {
+      // ESPN sometimes rejects `dates=A-B` ranges outright with HTTP 400
+      // ("Failed to get events endpoint.") for every league at once — that
+      // emptied the whole board on 2026-09-18 — while single-day queries
+      // keep working. Fall back to one request per day and merge.
+      const days: string[] = [];
+      const cursor = new Date(Date.UTC(+fromYmd.slice(0, 4), +fromYmd.slice(4, 6) - 1, +fromYmd.slice(6, 8)));
+      const end = Date.UTC(+toYmd.slice(0, 4), +toYmd.slice(4, 6) - 1, +toYmd.slice(6, 8));
+      while (cursor.getTime() <= end) {
+        days.push(formatYmd(cursor));
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+      const perDay = await Promise.all(days.map(fetchEvents));
+      const seen = new Set<string>();
+      events = perDay
+        .flatMap((d) => d ?? [])
+        .filter((e) => !seen.has(e.id) && seen.add(e.id));
+    }
 
     // Includes finished ("post") games too — the fetch window's start is
     // pinned to (at most) yesterday, never further back, so a finished game
