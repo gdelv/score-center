@@ -173,115 +173,147 @@ function toTeam(c: EspnCompetitor | undefined, isMultiLegTie: boolean): MatchTea
   };
 }
 
+/** Exported for `lib/predictions.ts` — same YYYYMMDD format ESPN's `dates` param expects. */
+export function formatYmd(d: Date): string {
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(
+    d.getUTCDate(),
+  ).padStart(2, "0")}`;
+}
+
+function parseYmd(ymd: string): Date {
+  return new Date(Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)));
+}
+
+function eachDayYmd(fromYmd: string, toYmd: string): string[] {
+  const days: string[] = [];
+  const cursor = parseYmd(fromYmd);
+  const end = parseYmd(toYmd).getTime();
+  while (cursor.getTime() <= end) {
+    days.push(formatYmd(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
+/**
+ * One scoreboard request. Returns null on any failure so callers can tell
+ * "ESPN rejected this" apart from "ESPN returned zero events".
+ *
+ * Deliberately uncached: the raw payload for a busy league (college football
+ * especially) can run several MB, over Next.js's 2MB fetch-cache entry limit
+ * — `next.revalidate` would just fail to cache it and log a warning on every
+ * request. We cache the small, normalized result instead, one level up in
+ * fetchAllUpcomingMatches.
+ */
+async function fetchScoreboardEvents(
+  espnPath: string,
+  dates: string,
+): Promise<EspnEvent[] | null> {
+  try {
+    const res = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/${espnPath}/scoreboard?dates=${dates}`,
+    );
+    if (!res.ok) return null;
+    const data: EspnScoreboardResponse = await res.json();
+    return data.events ?? [];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Tries the whole window as one `dates=A-B` request first. ESPN has been seen
+ * rejecting every range with HTTP 400 ("Failed to get events endpoint.") for
+ * all leagues at once — that emptied the entire board on 2026-09-18 — while
+ * single-day queries kept working, so on failure this falls back to one
+ * request per day, merged and de-duplicated. Costs more requests, but only
+ * while ESPN is misbehaving.
+ */
+async function fetchWindowEvents(
+  espnPath: string,
+  fromYmd: string,
+  toYmd: string,
+): Promise<EspnEvent[]> {
+  const ranged = await fetchScoreboardEvents(
+    espnPath,
+    fromYmd === toYmd ? fromYmd : `${fromYmd}-${toYmd}`,
+  );
+  if (ranged) return ranged;
+
+  const perDay = await Promise.all(
+    eachDayYmd(fromYmd, toYmd).map((day) => fetchScoreboardEvents(espnPath, day)),
+  );
+  const seen = new Set<string>();
+  return perDay.flatMap((events) => events ?? []).filter((e) => !seen.has(e.id) && seen.add(e.id));
+}
+
+function toMatch(league: LeagueConfig, e: EspnEvent): Match {
+  const competition = e.competitions[0];
+  const competitors = competition?.competitors ?? [];
+  const home = competitors.find((c) => c.homeAway === "home");
+  const away = competitors.find((c) => c.homeAway === "away");
+  const broadcastNames = competition?.broadcasts?.[0]?.names;
+  const rawOdds = competition?.odds?.[0];
+  // Group-stage/final matches are single games (totalCompetitions absent or
+  // 1) — only a knockout-round two-legged tie has this > 1, and only then
+  // does an aggregate score mean anything.
+  const isMultiLegTie = (competition?.series?.totalCompetitions ?? 1) > 1;
+
+  return {
+    id: `${league.id}-${e.id}`,
+    sport: league.sport,
+    leagueId: league.id,
+    leagueName: league.name,
+    leagueShortName: league.shortName,
+    accent: league.accent,
+    date: e.date,
+    state: e.status.type.state,
+    statusDetail: e.status.type.shortDetail || e.status.type.detail,
+    home: toTeam(home, isMultiLegTie),
+    away: toTeam(away, isMultiLegTie),
+    venue: competition?.venue?.fullName ?? null,
+    broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
+    seriesLeg: isMultiLegTie ? (competition?.leg?.displayValue ?? null) : null,
+    // Built whenever either line is present — a spread isn't always posted
+    // this early, but an over/under often already is (or vice versa), and
+    // dropping the whole thing for lacking one is why over/under could go
+    // missing even when ESPN actually has it.
+    odds:
+      rawOdds && (rawOdds.details || rawOdds.overUnder != null)
+        ? {
+            details: rawOdds.details ?? null,
+            overUnder: rawOdds.overUnder ?? null,
+            provider: rawOdds.provider?.displayName ?? null,
+          }
+        : null,
+  };
+}
+
 /**
  * Fetches one league's scoreboard for the given date window. Never throws.
  * Exported for `lib/predictions.ts`, which needs a specific past date (a
  * pick's kickoff day) rather than the rolling "yesterday onward" window
  * `fetchAllUpcomingMatches` uses — the same normalization applies either way.
+ *
+ * Includes finished ("post") games too — the window's start is pinned to (at
+ * most) yesterday, never further back, so a finished game returned here is
+ * always from yesterday or today, never real history. Callers that only want
+ * the upcoming board filter state==="post" back out themselves; the live
+ * ticker's finished-game fallback wants exactly these, including last
+ * night's, until something newer goes live.
  */
 export async function fetchLeagueMatches(
   league: LeagueConfig,
   fromYmd: string,
   toYmd: string,
 ): Promise<Match[]> {
-  const base = `https://site.api.espn.com/apis/site/v2/sports/${league.espnPath}/scoreboard`;
-
-  // Deliberately uncached: ESPN's raw scoreboard payload for a busy league
-  // (college football especially) can run several MB, over Next.js's 2MB
-  // fetch-cache entry limit — `next.revalidate` would just fail to cache it
-  // and log a warning on every request. We cache the small, normalized
-  // result instead, one level up in fetchAllUpcomingMatches.
-  async function fetchEvents(dates: string): Promise<EspnEvent[] | null> {
-    try {
-      const res = await fetch(`${base}?dates=${dates}`);
-      if (!res.ok) return null;
-      const data: EspnScoreboardResponse = await res.json();
-      return data.events ?? [];
-    } catch {
-      return null;
-    }
-  }
-
   try {
-    let events = await fetchEvents(fromYmd === toYmd ? fromYmd : `${fromYmd}-${toYmd}`);
-
-    if (events === null) {
-      // ESPN sometimes rejects `dates=A-B` ranges outright with HTTP 400
-      // ("Failed to get events endpoint.") for every league at once — that
-      // emptied the whole board on 2026-09-18 — while single-day queries
-      // keep working. Fall back to one request per day and merge.
-      const days: string[] = [];
-      const cursor = new Date(Date.UTC(+fromYmd.slice(0, 4), +fromYmd.slice(4, 6) - 1, +fromYmd.slice(6, 8)));
-      const end = Date.UTC(+toYmd.slice(0, 4), +toYmd.slice(4, 6) - 1, +toYmd.slice(6, 8));
-      while (cursor.getTime() <= end) {
-        days.push(formatYmd(cursor));
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
-      }
-      const perDay = await Promise.all(days.map(fetchEvents));
-      const seen = new Set<string>();
-      events = perDay
-        .flatMap((d) => d ?? [])
-        .filter((e) => !seen.has(e.id) && seen.add(e.id));
-    }
-
-    // Includes finished ("post") games too — the fetch window's start is
-    // pinned to (at most) yesterday, never further back, so a finished game
-    // returned here is always from yesterday or today, never real history.
-    // Callers that only want the upcoming board filter state==="post" back
-    // out themselves; the live ticker's finished-game fallback wants exactly
-    // these, including last night's, until something newer goes live.
-    return events.map((e) => {
-      const competition = e.competitions[0];
-      const competitors = competition?.competitors ?? [];
-      const home = competitors.find((c) => c.homeAway === "home");
-      const away = competitors.find((c) => c.homeAway === "away");
-      const broadcastNames = competition?.broadcasts?.[0]?.names;
-      const rawOdds = competition?.odds?.[0];
-      // Group-stage/final matches are single games (totalCompetitions
-      // absent or 1) — only a knockout-round two-legged tie has this > 1,
-      // and only then does an aggregate score mean anything.
-      const isMultiLegTie = (competition?.series?.totalCompetitions ?? 1) > 1;
-
-      return {
-        id: `${league.id}-${e.id}`,
-        sport: league.sport,
-        leagueId: league.id,
-        leagueName: league.name,
-        leagueShortName: league.shortName,
-        accent: league.accent,
-        date: e.date,
-        state: e.status.type.state,
-        statusDetail: e.status.type.shortDetail || e.status.type.detail,
-        home: toTeam(home, isMultiLegTie),
-        away: toTeam(away, isMultiLegTie),
-        venue: competition?.venue?.fullName ?? null,
-        broadcast: broadcastNames?.length ? broadcastNames.join(", ") : null,
-        seriesLeg: isMultiLegTie ? (competition?.leg?.displayValue ?? null) : null,
-        // Built whenever either line is present — a spread isn't always
-        // posted this early, but an over/under often already is (or vice
-        // versa), and dropping the whole thing for lacking one is why
-        // over/under could go missing even when ESPN actually has it.
-        odds:
-          rawOdds && (rawOdds.details || rawOdds.overUnder != null)
-            ? {
-                details: rawOdds.details ?? null,
-                overUnder: rawOdds.overUnder ?? null,
-                provider: rawOdds.provider?.displayName ?? null,
-              }
-            : null,
-      };
-    });
+    const events = await fetchWindowEvents(league.espnPath, fromYmd, toYmd);
+    return events.map((e) => toMatch(league, e));
   } catch {
     // A single upstream hiccup should never take down the whole board.
     return [];
   }
-}
-
-/** Exported for `lib/predictions.ts` — same YYYYMMDD format ESPN's `dates` param expects. */
-export function formatYmd(d: Date): string {
-  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(
-    d.getUTCDate(),
-  ).padStart(2, "0")}`;
 }
 
 async function fetchAllUpcomingMatchesUncached(days: number): Promise<Match[]> {

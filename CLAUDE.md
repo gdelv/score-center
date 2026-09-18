@@ -79,9 +79,12 @@ with unusual volume or upstream quirks:
   - **Upstream range limit** (`conmebol.sudamericana`) — ESPN's own scoreboard endpoint for this
     specific competition returns a 400 for a `dates=` span past roughly 9-10 days, confirmed
     reproducible on retry (not rate-limit flakiness) — likely because fixtures for the
-    competition's current round aren't resolved that far out server-side yet. Since
-    `fetchLeagueMatches` requests the whole window as one call, that failure was all-or-nothing:
-    it silently wiped out even the real near-term matches a narrower query returns fine.
+    competition's current round aren't resolved that far out server-side yet. Before
+    the per-day fallback (see Known caveats) existed, that failure was all-or-nothing: the whole
+    window is one call, so it silently wiped out even the real near-term matches a narrower
+    query returns fine. The fallback would now recover them, but `maxWindowDays: 7` is still
+    kept so this league doesn't burn a full round of failed range calls plus ~14 per-day ones
+    on every refresh.
     `conmebol.libertadores` has no such limit at the full 14-day window even though it's the
     same confederation's other continental cup — this is genuinely per-competition, not
     something you can assume from one CONMEBOL competition to another. If a new league's board
@@ -353,6 +356,17 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   disagrees with UTC about which day it is (i.e. only near their own local midnight, on a match
   that happens to be exactly 2 days out) — a far rarer and less confusing miss than a wrong AM/PM
   kickoff time.
+- **ESPN can reject every `dates=A-B` range at once — `lib/espn.ts` falls back to per-day
+  queries.** On 2026-09-18 ESPN started answering all date-range scoreboard requests, for every
+  league, with HTTP 400 (`{"code":400,"message":"Failed to get events endpoint."}`, gzipped so a
+  bare `curl` prints garbage — use `--compressed`) while single-day `dates=YYYYMMDD` kept
+  working, and the whole board went empty. `fetchWindowEvents` now tries the one ranged call
+  first and, only if it fails, requests each day separately and merges/de-duplicates by event id
+  (`fetchScoreboardEvents` returns `null` on failure, distinct from `[]`, which is how it tells
+  "rejected" from "no games"). Cost while degraded: ~8-15 small requests per league per refresh
+  instead of one, still behind the 120s `unstable_cache`. If the board is ever empty again,
+  first `curl --compressed` a ranged and a single-day URL by hand to see which ESPN is
+  rejecting.
 - ESPN's endpoint is public but unofficial and undocumented — no SLA, no versioning guarantee.
   If a league's scoreboard starts returning empty or errors, check the URL shape still matches
   by hand before assuming the code is at fault.
