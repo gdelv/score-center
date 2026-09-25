@@ -69,7 +69,13 @@ board current without a page reload.
 `site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/scoreboard` and checking for a 200), a
 `shortName` for the compact list label, and an `accent` hex used only for that league's filter
 checkbox tint. No other code changes needed — the filter list, tabs, and match feed all derive
-from this array. **Before shipping a new league, actually test its date-range behavior** — verify
+from this array. A new league is automatically switched on for returning guests who saved a
+custom filter before it existed (`hooks/useLeagueFilter.ts` keeps a per-device "seen leagues"
+list) — never edit `LEAGUES_BEFORE_SEEN_TRACKING` there; it's a frozen snapshot, not a registry.
+National-team soccer is four separate ESPN competitions (`fifa.friendly`, `uefa.nations`,
+`concacaf.nations.league`, `caf.nations_qual`); `fifa.worldq.*` exists but is dormant between
+World Cup cycles, so add those back only once 2030 qualifying has fixtures. **Before shipping a
+new league, actually test its date-range behavior** — verify
 a plain 200 isn't enough, see below. Two optional per-league escape hatches exist for leagues
 with unusual volume or upstream quirks:
 - `maxWindowDays` — caps the lookahead window below the global 14 days. Two different reasons to

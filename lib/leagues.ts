@@ -135,6 +135,42 @@ export const LEAGUES: LeagueConfig[] = [
     // at the full 14-day window, so this is scoped to Sudamericana only.
     maxWindowDays: 7,
   },
+  // National teams. ESPN keeps these as separate competitions, not one
+  // "international" feed. World Cup qualifying (fifa.worldq.*) is left out
+  // on purpose: the 2026 cycle is over and the 2030 one hasn't started, so
+  // those endpoints return nothing for any upcoming date — pure request cost.
+  {
+    id: "fifa.friendly",
+    sport: "soccer",
+    espnPath: "soccer/fifa.friendly",
+    name: "International Friendlies",
+    shortName: "Friendly",
+    accent: "#64748B",
+  },
+  {
+    id: "uefa.nations",
+    sport: "soccer",
+    espnPath: "soccer/uefa.nations",
+    name: "UEFA Nations League",
+    shortName: "UNL",
+    accent: "#1F4FB5",
+  },
+  {
+    id: "concacaf.nations.league",
+    sport: "soccer",
+    espnPath: "soccer/concacaf.nations.league",
+    name: "Concacaf Nations League",
+    shortName: "CNL",
+    accent: "#0E8A8A",
+  },
+  {
+    id: "caf.nations_qual",
+    sport: "soccer",
+    espnPath: "soccer/caf.nations_qual",
+    name: "AFCON Qualifying",
+    shortName: "AFCON Q",
+    accent: "#D08C00",
+  },
 ];
 
 export const LEAGUES_BY_ID: Record<string, LeagueConfig> = Object.fromEntries(
