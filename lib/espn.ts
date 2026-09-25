@@ -148,7 +148,10 @@ async function fetchRankedTeams(): Promise<Map<string, number>> {
   }
 }
 
-function toTeam(c: EspnCompetitor | undefined, isMultiLegTie: boolean): MatchTeam {
+function toTeam(
+  c: EspnCompetitor | undefined,
+  isMultiLegTie: boolean,
+): MatchTeam {
   if (!c) {
     return {
       id: "unknown",
@@ -164,12 +167,14 @@ function toTeam(c: EspnCompetitor | undefined, isMultiLegTie: boolean): MatchTea
   return {
     id: c.team.id,
     name: c.team.displayName,
-    shortName: c.team.shortDisplayName ?? c.team.abbreviation ?? c.team.displayName,
+    shortName:
+      c.team.shortDisplayName ?? c.team.abbreviation ?? c.team.displayName,
     logo: c.team.logo ?? null,
     score: c.score ?? null,
     winner: Boolean(c.winner),
     rank: null,
-    aggregateScore: isMultiLegTie && c.aggregateScore != null ? c.aggregateScore : null,
+    aggregateScore:
+      isMultiLegTie && c.aggregateScore != null ? c.aggregateScore : null,
   };
 }
 
@@ -181,7 +186,9 @@ export function formatYmd(d: Date): string {
 }
 
 function parseYmd(ymd: string): Date {
-  return new Date(Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)));
+  return new Date(
+    Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)),
+  );
 }
 
 function eachDayYmd(fromYmd: string, toYmd: string): string[] {
@@ -241,10 +248,14 @@ async function fetchWindowEvents(
   if (ranged) return ranged;
 
   const perDay = await Promise.all(
-    eachDayYmd(fromYmd, toYmd).map((day) => fetchScoreboardEvents(espnPath, day)),
+    eachDayYmd(fromYmd, toYmd).map((day) =>
+      fetchScoreboardEvents(espnPath, day),
+    ),
   );
   const seen = new Set<string>();
-  return perDay.flatMap((events) => events ?? []).filter((e) => !seen.has(e.id) && seen.add(e.id));
+  return perDay
+    .flatMap((events) => events ?? [])
+    .filter((e) => !seen.has(e.id) && seen.add(e.id));
 }
 
 function toMatch(league: LeagueConfig, e: EspnEvent): Match {
@@ -331,13 +342,27 @@ async function fetchAllUpcomingMatchesUncached(days: number): Promise<Match[]> {
 
   function windowEndYmd(league: LeagueConfig): string {
     const end = new Date(windowStart);
-    end.setUTCDate(end.getUTCDate() + Math.min(days, league.maxWindowDays ?? days));
+    end.setUTCDate(
+      end.getUTCDate() + Math.min(days, league.maxWindowDays ?? days),
+    );
     return formatYmd(end);
   }
 
+  return fetchLeaguesInWindows((league) => [fromYmd, windowEndYmd(league)]);
+}
+
+/**
+ * Fans out across every configured league for the per-league window
+ * `rangeFor` returns, applies `filterToRankedTeams` where set, and returns
+ * one kickoff-sorted list. Shared by the rolling upcoming board and the
+ * single-day date-picker view.
+ */
+async function fetchLeaguesInWindows(
+  rangeFor: (league: LeagueConfig) => [fromYmd: string, toYmd: string],
+): Promise<Match[]> {
   const [rankedTeams, ...leagueResults] = await Promise.all([
     fetchRankedTeams(),
-    ...LEAGUES.map((league) => fetchLeagueMatches(league, fromYmd, windowEndYmd(league))),
+    ...LEAGUES.map((league) => fetchLeagueMatches(league, ...rangeFor(league))),
   ]);
 
   const results = leagueResults.map((matches, i) => {
@@ -378,4 +403,36 @@ const cachedFetchAllUpcomingMatches = unstable_cache(
  */
 export function fetchAllUpcomingMatches(days = 14): Promise<Match[]> {
   return cachedFetchAllUpcomingMatches(days);
+}
+
+async function fetchMatchesAroundDayUncached(ymd: string): Promise<Match[]> {
+  // The guest picks a day in *their own* timezone, and ESPN's own `dates=`
+  // buckets aren't UTC either, so one ESPN day can't be trusted to contain
+  // the guest's whole local day. The day either side covers every timezone
+  // the guest could plausibly be in; the client narrows it back down to its
+  // own local day (see ScoreCenter). Three days is small enough that no
+  // league's `maxWindowDays` cap is needed here, and the per-day fallback in
+  // fetchWindowEvents still covers leagues that reject ranges.
+  const from = parseYmd(ymd);
+  from.setUTCDate(from.getUTCDate() - 1);
+  const to = parseYmd(ymd);
+  to.setUTCDate(to.getUTCDate() + 1);
+  return fetchLeaguesInWindows(() => [formatYmd(from), formatYmd(to)]);
+}
+
+const cachedFetchMatchesAroundDay = unstable_cache(
+  fetchMatchesAroundDayUncached,
+  ["score-center-matches-around-day"],
+  { revalidate: 120 },
+);
+
+/**
+ * Every configured league's matches — past, live, and upcoming — for the
+ * day before through the day after `ymd` (YYYYMMDD), for the date picker.
+ * Unlike fetchAllUpcomingMatches, finished games from any date are expected
+ * here: picking a past day is how a guest looks up results. Cached per day
+ * for 120s, same as the upcoming board.
+ */
+export function fetchMatchesAroundDay(ymd: string): Promise<Match[]> {
+  return cachedFetchMatchesAroundDay(ymd);
 }

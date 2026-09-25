@@ -29,7 +29,9 @@ export function dayLabel(iso: string): string {
   // Plain epoch-ms arithmetic rather than Date.setDate/getDate, which
   // operate in the runtime's *local* time — the whole point here is to
   // never depend on which timezone this happens to run in (see dayKey).
-  const tomorrowKey = dayKey(new Date(now.getTime() + ONE_DAY_MS).toISOString());
+  const tomorrowKey = dayKey(
+    new Date(now.getTime() + ONE_DAY_MS).toISOString(),
+  );
 
   if (targetKey === todayKey) return "Today";
   if (targetKey === tomorrowKey) return "Tomorrow";
@@ -79,4 +81,32 @@ export function groupByDay(matches: Match[]): DayGroup[] {
   }
 
   return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/**
+ * The guest's *local* calendar day, "YYYY-MM-DD" — the same shape as a
+ * native `<input type="date">` value. Only for the date picker's view, which
+ * is never server-rendered (it only exists after the guest picks a day), so
+ * unlike `dayKey` there's no hydration pass for local time to break — and a
+ * guest picking "Saturday" means their own Saturday, not UTC's.
+ */
+export function localDayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+export function shiftLocalDay(key: string, days: number): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return localDayKey(new Date(y, m - 1, d + days));
+}
+
+/** e.g. "Saturday, September 26" — for a `localDayKey`, in the guest's locale. */
+export function localDayHeading(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 }

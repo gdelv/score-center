@@ -58,6 +58,8 @@ export function MatchRow({
   showOdds: boolean;
 }) {
   const isLive = match.state === "in";
+  // Only reachable via the date picker — the upcoming board filters these out.
+  const isFinal = match.state === "post";
   const showRankGutter = Boolean(match.home.rank || match.away.rank);
   const espnPath = LEAGUES_BY_ID[match.leagueId]?.espnPath ?? "";
   // Kickoff time is in the guest's own timezone (matchTime), but this page
@@ -74,29 +76,33 @@ export function MatchRow({
         <span className="tabular truncate">
           {isLive
             ? match.leagueShortName
-            : mounted
-              ? `${matchTime(match.date)} · ${match.leagueShortName}`
-              : match.leagueShortName}
+            : isFinal
+              ? `${match.statusDetail} · ${match.leagueShortName}`
+              : mounted
+                ? `${matchTime(match.date)} · ${match.leagueShortName}`
+                : match.leagueShortName}
           {match.seriesLeg ? ` · ${match.seriesLeg}` : ""}
           {showBroadcast && match.broadcast ? ` · ${match.broadcast}` : ""}
         </span>
-        {match.venue && <span className="truncate text-right">{match.venue}</span>}
+        {match.venue && (
+          <span className="truncate text-right">{match.venue}</span>
+        )}
       </div>
 
       <div className="mt-2 space-y-1.5">
         <TeamLine
           team={match.away}
-          showScore={isLive}
+          showScore={isLive || isFinal}
           showRankGutter={showRankGutter}
           espnPath={espnPath}
-          hintDisabled={isLive}
+          hintDisabled={isLive || isFinal}
         />
         <TeamLine
           team={match.home}
-          showScore={isLive}
+          showScore={isLive || isFinal}
           showRankGutter={showRankGutter}
           espnPath={espnPath}
-          hintDisabled={isLive}
+          hintDisabled={isLive || isFinal}
         />
       </div>
 
@@ -108,7 +114,9 @@ export function MatchRow({
 
       {showOdds && match.odds && (
         <div className="tabular mt-2 text-[11px] text-ink-dim">
-          {isLive ? `Pregame: ${formatOdds(match.odds)}` : formatOdds(match.odds)}
+          {isLive
+            ? `Pregame: ${formatOdds(match.odds)}`
+            : formatOdds(match.odds)}
         </div>
       )}
 

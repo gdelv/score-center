@@ -179,6 +179,7 @@ type-specific evaluator per leg.
 | `components/LeagueFilter.tsx` | Checkbox list grouped by sport, used in both the sidebar and the mobile sheet |
 | `components/FilterSheet.tsx` | Mobile bottom-sheet wrapper around `LeagueFilter` + `DisplayToggles` |
 | `components/DisplayToggles.tsx` | Opt-in checkboxes for per-match broadcast/odds info, in both the sidebar and the mobile sheet |
+| `components/DatePicker.tsx` | Prev/next arrows around a native date input — jumps the board to one day (past = results), "Upcoming" returns to the default feed |
 | `components/NextMatchPanel.tsx` | The single "Next up" hero — soonest match after filtering |
 | `components/DateSection.tsx` / `MatchRow.tsx` | Day-grouped match grid |
 | `components/TeamMatchupHint.tsx` | Hover (desktop) / tap (mobile) a team on a non-live match to see that team's own last result |
@@ -266,6 +267,17 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   `ScrollingBar` repeats whichever match list it's given up to a minimum item count *before*
   doubling it for the loop, so this holds regardless of how few (or many) matches there are.
 
+- **Date picker = one day in the guest's *local* timezone, fetched on demand.** The default
+  board is unchanged (rolling upcoming window, server-rendered). Picking a day calls
+  `GET /api/matches/{YYYY-MM-DD}` (`fetchMatchesAroundDay` in `lib/espn.ts`), which returns every
+  league's matches for that day *plus the day either side* — the client then narrows to the
+  guest's own local day via `localDayKey`. Local time is safe here, unlike `dayKey`, because
+  this view is never server-rendered (it only exists after the guest picks a date), so there's
+  no hydration pass to break. Finished games are kept in this view (`MatchRow` shows the final
+  score + "FT"/"Final"), no "Next up" hero, and it polls every 90s like the main board. The date
+  is a **path segment, not a query param**, on purpose — Netlify's CDN keys by pathname only
+  (see `team-result` below), so `?date=` with a Cache-Control header would serve one day for
+  all. Caveat: college football on a past date is still filtered by the *current* AP poll.
 - **Broadcast and odds are opt-in, off by default** (`DisplayToggles.tsx` /
   `hooks/useDisplayPrefs.ts`, same `useSyncExternalStore` + `localStorage` pattern as the league
   filter). Both come straight from ESPN's scoreboard payload — `competition.broadcasts[0].names`
