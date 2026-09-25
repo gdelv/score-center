@@ -119,7 +119,7 @@ export function NextMatchPanel({
           <LiveBadge detail={match.statusDetail} />
         ) : mounted ? (
           <>
-            {dayLabel(match.date)} · {matchTime(match.date)}
+            {dayLabel(match.date, "local")} · {matchTime(match.date)}
             <span className="text-ink-dim"> — {until}</span>
           </>
         ) : (

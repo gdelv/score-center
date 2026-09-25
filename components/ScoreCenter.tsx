@@ -7,6 +7,7 @@ import { groupByDay, localDayHeading, localDayKey } from "@/lib/format";
 import { LEAGUES, DEFAULT_SELECTED_LEAGUE_IDS } from "@/lib/leagues";
 import { useLeagueFilter } from "@/hooks/useLeagueFilter";
 import { useDisplayPrefs } from "@/hooks/useDisplayPrefs";
+import { useHasMounted } from "@/hooks/useHasMounted";
 import { Header } from "./Header";
 import { SportTabs, type SportTab } from "./SportTabs";
 import { LeagueFilter } from "./LeagueFilter";
@@ -109,7 +110,15 @@ export function ScoreCenter({
   );
 
   const [heroMatch, ...restMatches] = filteredMatches;
-  const groups = useMemo(() => groupByDay(restMatches), [restMatches]);
+  // UTC buckets for the server render and first client paint (so hydration
+  // sees an identical tree — see dayKey), then re-bucketed by the guest's own
+  // day right after mount. The regroup is a normal post-hydration render,
+  // not a mismatch.
+  const mounted = useHasMounted();
+  const groups = useMemo(
+    () => groupByDay(restMatches, mounted ? "local" : "utc"),
+    [restMatches, mounted],
+  );
 
   // The server returns the day either side too (see fetchMatchesAroundDay);
   // narrow to the guest's own local day here. Finished games stay in — on a

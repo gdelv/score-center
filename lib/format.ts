@@ -1,5 +1,7 @@
 import type { Match, MatchOdds } from "./espn";
 
+export type DayZone = "utc" | "local";
+
 /**
  * UTC calendar-day key, e.g. "2026-09-11" — deliberately UTC, not the
  * viewer's local timezone. This key decides which day-bucket a match falls
@@ -10,9 +12,15 @@ import type { Match, MatchOdds } from "./espn";
  * mismatched text node, which `suppressHydrationWarning` could paper over.
  * The actual kickoff *time* shown to the guest still uses their local
  * timezone — see `matchTime` — only the day-bucketing is pinned to UTC.
+ *
+ * UTC is only for renders that must match the server. Once mounted, callers
+ * pass `"local"`: in the evening across the Americas UTC is already on
+ * tomorrow, so UTC's "Today" is really the guest's tomorrow (a 9pm ET guest
+ * saw Friday's Nations League games under "Today" on Thursday night).
  */
-export function dayKey(iso: string): string {
+export function dayKey(iso: string, zone: DayZone = "utc"): string {
   const d = new Date(iso);
+  if (zone === "local") return localDayKey(d);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(
     d.getUTCDate(),
   ).padStart(2, "0")}`;
@@ -20,18 +28,19 @@ export function dayKey(iso: string): string {
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-export function dayLabel(iso: string): string {
+export function dayLabel(iso: string, zone: DayZone = "utc"): string {
   const target = new Date(iso);
   const now = new Date();
 
-  const targetKey = dayKey(iso);
-  const todayKey = dayKey(now.toISOString());
-  // Plain epoch-ms arithmetic rather than Date.setDate/getDate, which
-  // operate in the runtime's *local* time — the whole point here is to
-  // never depend on which timezone this happens to run in (see dayKey).
-  const tomorrowKey = dayKey(
-    new Date(now.getTime() + ONE_DAY_MS).toISOString(),
-  );
+  const targetKey = dayKey(iso, zone);
+  const todayKey = dayKey(now.toISOString(), zone);
+  // For UTC: plain epoch-ms arithmetic rather than Date.setDate/getDate,
+  // which operate in the runtime's *local* time — the whole point there is
+  // to never depend on which timezone this happens to run in (see dayKey).
+  const tomorrowKey =
+    zone === "local"
+      ? shiftLocalDay(todayKey, 1)
+      : dayKey(new Date(now.getTime() + ONE_DAY_MS).toISOString());
 
   if (targetKey === todayKey) return "Today";
   if (targetKey === tomorrowKey) return "Tomorrow";
@@ -67,16 +76,16 @@ export interface DayGroup {
   matches: Match[];
 }
 
-export function groupByDay(matches: Match[]): DayGroup[] {
+export function groupByDay(matches: Match[], zone: DayZone = "utc"): DayGroup[] {
   const map = new Map<string, DayGroup>();
 
   for (const match of matches) {
-    const key = dayKey(match.date);
+    const key = dayKey(match.date, zone);
     const existing = map.get(key);
     if (existing) {
       existing.matches.push(match);
     } else {
-      map.set(key, { key, label: dayLabel(match.date), matches: [match] });
+      map.set(key, { key, label: dayLabel(match.date, zone), matches: [match] });
     }
   }
 

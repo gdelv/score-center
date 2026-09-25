@@ -349,6 +349,13 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   independent, so server and client always agree) while `matchTime`'s displayed clock time stays
   on the guest's local timezone is what makes both work: correct grouping *and* a kickoff time in
   the guest's own zone.
+
+  UTC is only for the server render and first client paint, though. Right after mount,
+  `ScoreCenter.tsx` regroups with `groupByDay(..., "local")` (gated on `useHasMounted`), and
+  `NextMatchPanel` labels with `dayLabel(..., "local")`. Staying on UTC after mount was a real
+  bug: at 9pm ET, UTC is already tomorrow, so Friday's European games showed under "Today" on
+  Thursday night. The post-mount regroup is an ordinary re-render, not a hydration mismatch —
+  just never compute local grouping during the render that hydrates.
 - **`suppressHydrationWarning` alone is not enough for locale/timezone-dependent text — use
   `hooks/useHasMounted.ts` instead.** A guest reported kickoff times showing as ~12:30am for
   matches that don't actually kick off then; the real cause was every `matchTime()`/`dayLabel()`/
