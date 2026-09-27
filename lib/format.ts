@@ -119,3 +119,18 @@ export function localDayHeading(key: string): string {
     day: "numeric",
   });
 }
+
+/** e.g. "Sun 1:00 PM" in the guest's timezone — mount-gate it like matchTime. */
+export function matchDayTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** Signed line for display: -3.5, +7, PK. Moneylines use the same shape: -245, +200. */
+export function formatLine(n: number): string {
+  if (n === 0) return "PK";
+  return n > 0 ? `+${n}` : `${n}`;
+}

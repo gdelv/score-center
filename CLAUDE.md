@@ -11,7 +11,7 @@ any code. Heed deprecation notices.
 ## What this is
 A guest-only board of every upcoming soccer, NFL, and ranked college football match, plus a
 `/predictions` page tracking college football spread parlays from Claude, ChatGPT, and Gemini
-against real results. No accounts, no login — visitors pick which leagues they want to see and
+against real results, and a `/lines` page of past NFL betting lines graded against final scores. No accounts, no login — visitors pick which leagues they want to see and
 the choice is remembered on that device. Not tied to a specific paying client; it's a standalone
 product living alongside the other projects in `businessProjects/`.
 
@@ -175,6 +175,25 @@ matches the betting-odds data already on the main board (same DraftKings-via-ESP
 single bet type keeps grading (and comparing the three AIs) uniform instead of needing a
 type-specific evaluator per leg.
 
+## NFL lines (`/lines`)
+Every finished NFL game this season (regular season + postseason, preseason skipped) with its
+opening and closing DraftKings line — spread, total, moneyline — graded against the final score,
+plus season-to-date records: favorites against the spread, overs/unders, favorites straight up.
+Week tabs, newest first; defaults to the latest week with a finished game. NFL only for now.
+
+**Why a second ESPN endpoint:** the site scoreboard drops `competition.odds` once a game is
+final, so `lib/lines.ts` reads each finished game's line from ESPN's *core* API
+(`sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/{id}/competitions/{id}/odds`,
+~7KB, has `open` and `close`) rather than the game summary endpoint (~570KB for the same line).
+Those per-game fetches are fetch-cached for a day (a closing line never changes after the game);
+the whole normalized season is `unstable_cache`d for 120s like everything else. Week list comes
+from the default scoreboard's `leagues[0].calendar`, each week from
+`scoreboard?seasontype=T&week=N&dates=YEAR` — `week=` queries aren't affected by the ranged
+`dates=A-B` 400s. ESPN lines are **home-relative** (`-5.5` = home favored); grading helpers
+(`favoriteSide`, `spreadResult`, `totalResult`, `summarize`) are pure and run client-side.
+Adding a league later means another SITE/CORE URL pair and checking its core odds carry
+`open`/`close` — don't assume, test it.
+
 ## Component map
 | Component | Purpose |
 |-----------|---------|
@@ -194,9 +213,11 @@ type-specific evaluator per leg.
 | `components/PredictionsBoard.tsx` | Client orchestrator for `/predictions` — same polling pattern as `ScoreCenter.tsx` |
 | `components/PredictionsLeaderboard.tsx` / `PredictionsWeek.tsx` / `ParlayCard.tsx` | Season record cards, per-week grouping, one parlay's legs |
 | `components/LegReasonHint.tsx` | Hover (desktop) / tap (mobile) a pick to read why it was made |
+| `components/LinesBoard.tsx` / `LineCard.tsx` | `/lines` — season summary cards, week tabs, one card per finished game (spread/total/moneyline, open → close, result) |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
 | `lib/espn.ts`, `lib/leagues.ts`, `lib/format.ts` | Data fetching, league config, date/time formatting |
+| `lib/lines.ts` | NFL past lines: ESPN scoreboard + core odds fetching, and the pure grading helpers |
 
 ## Design rationale
 Grounded in the actual subject — a stadium scoreboard/ticker — rather than a generic sports-app

@@ -18,6 +18,7 @@ function agoLabel(seconds: number): string {
 const NAV_LINKS = [
   { href: "/", label: "Scores", match: "scores" },
   { href: "/predictions", label: "Predictions", match: "predictions" },
+  { href: "/lines", label: "NFL Lines", match: "lines" },
 ] as const;
 
 export function Header({
@@ -25,7 +26,7 @@ export function Header({
   active,
 }: {
   fetchedAt: string;
-  active: "scores" | "predictions";
+  active: (typeof NAV_LINKS)[number]["match"];
 }) {
   // Ticks periodically so the "updated N ago" label keeps advancing even
   // when fetchedAt itself hasn't changed; the label is derived fresh below.
