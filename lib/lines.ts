@@ -1,9 +1,12 @@
 import { unstable_cache } from "next/cache";
-
-// NFL only for now. Both URLs are per-sport/league, so another league means a
-// second pair of these (and checking its core odds endpoint has open/close).
-const SITE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
-const CORE = "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl";
+import {
+  CORE,
+  fetchJson,
+  fetchStartedWeeks,
+  fetchWeekEvents,
+  type EspnCompetitor,
+  type NflWeek,
+} from "./nfl";
 
 export interface LineTeam {
   id: string;
@@ -47,31 +50,7 @@ export interface SeasonLines {
   weeks: WeekLines[];
 }
 
-// Raw ESPN shapes, narrowed to the fields read here.
-interface EspnCompetitor {
-  homeAway: "home" | "away";
-  score?: string;
-  team: { id: string; displayName: string; abbreviation: string; logo?: string };
-}
-
-interface EspnEvent {
-  id: string;
-  date: string;
-  status: { type: { state: "pre" | "in" | "post" } };
-  competitions: { id: string; competitors: EspnCompetitor[] }[];
-}
-
-interface EspnCalendarSection {
-  value: string;
-  entries?: { label: string; value: string; startDate: string }[];
-}
-
-interface EspnScoreboard {
-  season?: { year: number };
-  leagues?: { calendar?: EspnCalendarSection[] }[];
-  events?: EspnEvent[];
-}
-
+// Raw ESPN odds shapes, narrowed to the fields read here.
 interface EspnPrice {
   american?: string;
 }
@@ -99,15 +78,6 @@ function parseLine(value: string | number | undefined): number | null {
   if (/^(pk|even)$/i.test(value.trim())) return 0;
   const n = parseFloat(value.replace(/^[ou]/i, ""));
   return Number.isNaN(n) ? null : n;
-}
-
-async function fetchJson<T>(url: string, revalidate?: number): Promise<T | null> {
-  try {
-    const res = await fetch(url, revalidate ? { next: { revalidate } } : undefined);
-    return res.ok ? ((await res.json()) as T) : null;
-  } catch {
-    return null;
-  }
 }
 
 function toTeam(c: EspnCompetitor | undefined): LineTeam {
@@ -160,18 +130,8 @@ async function fetchGameOdds(
   };
 }
 
-async function fetchWeekLines(
-  year: number,
-  seasonType: string,
-  week: string,
-  label: string,
-): Promise<WeekLines> {
-  // Raw scoreboard deliberately uncached — see fetchScoreboardEvents in
-  // lib/espn.ts. The normalized season result is cached one level up.
-  const board = await fetchJson<EspnScoreboard>(
-    `${SITE}/scoreboard?seasontype=${seasonType}&week=${week}&dates=${year}`,
-  );
-  const events = board?.events ?? [];
+async function fetchWeekLines(year: number, week: NflWeek): Promise<WeekLines> {
+  const events = await fetchWeekEvents(year, week);
   const finished = events.filter((e) => e.status.type.state === "post");
 
   const games = await Promise.all(
@@ -189,33 +149,18 @@ async function fetchWeekLines(
   );
 
   return {
-    key: `${seasonType}-${week}`,
-    label,
+    key: week.key,
+    label: week.label,
     games: games.sort((a, b) => a.date.localeCompare(b.date)),
     remaining: events.length - finished.length,
   };
 }
 
 async function fetchSeasonLinesUncached(): Promise<SeasonLines> {
-  // The default scoreboard carries the current season and its week calendar.
-  const current = await fetchJson<EspnScoreboard>(`${SITE}/scoreboard`);
-  const year = current?.season?.year;
+  const { year, weeks: started } = await fetchStartedWeeks();
   if (!year) return { season: null, weeks: [] };
 
-  const now = Date.now();
-  // Regular season ("2") and postseason ("3") weeks that have started.
-  // Preseason is skipped: lines on backups-only games aren't worth tracking.
-  const started = (current.leagues?.[0]?.calendar ?? [])
-    .filter((section) => section.value === "2" || section.value === "3")
-    .flatMap((section) =>
-      (section.entries ?? [])
-        .filter((entry) => Date.parse(entry.startDate) <= now)
-        .map((entry) => ({ seasonType: section.value, ...entry })),
-    );
-
-  const weeks = await Promise.all(
-    started.map((w) => fetchWeekLines(year, w.seasonType, w.value, w.label)),
-  );
+  const weeks = await Promise.all(started.map((w) => fetchWeekLines(year, w)));
   return { season: year, weeks: weeks.filter((w) => w.games.length > 0 || w.remaining > 0) };
 }
 

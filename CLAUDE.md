@@ -195,6 +195,27 @@ from the default scoreboard's `leagues[0].calendar`, each week from
 Adding a league later means another SITE/CORE URL pair and checking its core odds carry
 `open`/`close` — don't assume, test it.
 
+### TD scorers (`/lines/touchdowns`)
+Grid of every team (rows) × every week (columns, newest first) listing who scored that team's
+touchdowns, tagged rush/rec/def, with "vs/@ opponent", "Bye" for a missing week, a live dot for
+games in progress, and season leaders. Tapping any scorer highlights all their cells. A sub-nav
+(`LinesNav.tsx`) switches between this and `/lines`; both share the header's "NFL Lines" slot.
+
+Scorers come from the game summary's `scoringPlays` (`lib/touchdowns.ts`). Two non-obvious
+things, both found against real data (every 2026 TD of weeks 1-3, 168 plays):
+- **Filter on `scoringType.abbreviation === "TD"`, not `type.abbreviation`** — defensive
+  fumble-return TDs come through as type `SFOP` ("Sack Opp Fumble Recovery"); only `scoringType`
+  marks them as touchdowns.
+- **The scorer's name is parsed from the play text** (`"Joshua Palmer 43 Yd pass from Josh
+  Allen …"` → everything before `N Yd`). The summary has no structured scorer field; the core
+  plays feed does, but it's ~870KB a game and each athlete is another request. If ESPN changes the
+  text format, that regex (`SCORER`) is the one place to fix. Players are keyed by team + name.
+
+The summary is ~570KB per game, so it's never fetch-cached; the parsed per-game touchdowns of a
+*finished* game are `unstable_cache`d for a day, and fetches run at most 8 at a time
+(`mapLimit`) so a cold cache late in the season doesn't fire ~280 at once. Shared NFL plumbing
+(week calendar, week scoreboard, `fetchJson`) lives in `lib/nfl.ts`, used by both NFL pages.
+
 ## Component map
 | Component | Purpose |
 |-----------|---------|
@@ -215,10 +236,14 @@ Adding a league later means another SITE/CORE URL pair and checking its core odd
 | `components/PredictionsLeaderboard.tsx` / `PredictionsWeek.tsx` / `ParlayCard.tsx` | Season record cards, per-week grouping, one parlay's legs |
 | `components/LegReasonHint.tsx` | Hover (desktop) / tap (mobile) a pick to read why it was made |
 | `components/LinesBoard.tsx` / `LineCard.tsx` | `/lines` — season summary cards, week tabs, one card per finished game (spread/total/moneyline, open → close, result) |
+| `components/TouchdownBoard.tsx` | `/lines/touchdowns` — team × week grid of TD scorers, season leaders, tap-to-highlight a player |
+| `components/LinesNav.tsx` | "Betting lines / TD scorers" sub-nav shared by the two NFL pages |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
 | `lib/espn.ts`, `lib/leagues.ts`, `lib/format.ts` | Data fetching, league config, date/time formatting |
-| `lib/lines.ts` | NFL past lines: ESPN scoreboard + core odds fetching, and the pure grading helpers |
+| `lib/lines.ts` | NFL past lines: ESPN core odds fetching, and the pure grading helpers |
+| `lib/touchdowns.ts` | NFL TD scorers: summary `scoringPlays` fetching/parsing, per-player totals |
+| `lib/nfl.ts` | Shared ESPN NFL plumbing: week calendar, per-week scoreboard, `fetchJson` |
 
 ## Design rationale
 Grounded in the actual subject — a stadium scoreboard/ticker — rather than a generic sports-app

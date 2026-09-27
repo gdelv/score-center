@@ -5,6 +5,7 @@ import { summarize, type LinesSummary, type Record3, type SeasonLines } from "@/
 import { Header } from "./Header";
 import { LineCard } from "./LineCard";
 import { EmptyState } from "./EmptyState";
+import { LinesNav } from "./LinesNav";
 
 const POLL_MS = 90_000;
 
@@ -89,7 +90,10 @@ export function LinesBoard({
       <Header fetchedAt={fetchedAt} active="lines" />
 
       <div className="pb-16">
-        <p className="pt-6 text-sm text-ink-dim">
+        <div className="pt-5">
+          <LinesNav active="lines" />
+        </div>
+        <p className="pt-4 text-sm text-ink-dim">
           Closing DraftKings lines for every finished NFL game
           {lines.season ? ` of the ${lines.season} season` : ""}, graded against the final score.
         </p>
