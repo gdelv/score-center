@@ -252,3 +252,41 @@ export function summarize(games: GameLine[]): LinesSummary {
   }
   return s;
 }
+
+// --- Time slots: pure, client-safe ------------------------------------------
+
+export type GameSlot = "thu" | "sun-early" | "sun-late" | "sun-night" | "mon" | "other";
+
+export const SLOT_LABELS: Record<GameSlot, string> = {
+  thu: "Thursday night",
+  "sun-early": "Sunday early",
+  "sun-late": "Sunday late",
+  "sun-night": "Sunday night",
+  mon: "Monday night",
+  other: "Other days",
+};
+
+const ET_PARTS = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "short",
+  hour: "numeric",
+  hourCycle: "h23",
+});
+
+/**
+ * The NFL broadcast window a kickoff falls in. Always judged in Eastern time
+ * — that's how the league defines its windows (1pm/4pm/8:20pm ET), and a
+ * fixed zone means the server render and every guest's browser agree.
+ * Sunday: before 3pm ET is "early" (includes 9:30am international games),
+ * 3pm–6pm "late", 6pm on "night". Fri/Sat/Tue/Wed games (late-season
+ * Saturdays, holidays) are "other".
+ */
+export function gameSlot(iso: string): GameSlot {
+  const parts = ET_PARTS.formatToParts(new Date(iso));
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value);
+  if (weekday === "Thu") return "thu";
+  if (weekday === "Mon") return "mon";
+  if (weekday === "Sun") return hour < 15 ? "sun-early" : hour < 18 ? "sun-late" : "sun-night";
+  return "other";
+}

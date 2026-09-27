@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { summarize, type LinesSummary, type Record3, type SeasonLines } from "@/lib/lines";
+import {
+  SLOT_LABELS,
+  gameSlot,
+  summarize,
+  type GameSlot,
+  type LinesSummary,
+  type Record3,
+  type SeasonLines,
+} from "@/lib/lines";
 import { Header } from "./Header";
 import { LineCard } from "./LineCard";
 import { EmptyState } from "./EmptyState";
@@ -64,6 +72,8 @@ export function LinesBoard({
   const [fetchedAt, setFetchedAt] = useState(initialFetchedAt);
   // null = the latest week with a finished game.
   const [pickedWeek, setPickedWeek] = useState<string | null>(null);
+  // null = every time slot.
+  const [slot, setSlot] = useState<GameSlot | null>(null);
 
   useEffect(() => {
     const id = setInterval(async () => {
@@ -81,9 +91,25 @@ export function LinesBoard({
   }, []);
 
   const weeks = useMemo(() => lines.weeks.filter((w) => w.games.length > 0), [lines]);
-  const season = useMemo(() => summarize(weeks.flatMap((w) => w.games)), [weeks]);
+  const allGames = useMemo(() => weeks.flatMap((w) => w.games), [weeks]);
+  // Only offer slots that actually have a finished game this season, in
+  // schedule order.
+  const slots = useMemo(() => {
+    const present = new Set(allGames.map((g) => gameSlot(g.date)));
+    return (Object.keys(SLOT_LABELS) as GameSlot[]).filter((s) => present.has(s));
+  }, [allGames]);
+  const inSlot = useMemo(
+    () => (game: { date: string }) => slot === null || gameSlot(game.date) === slot,
+    [slot],
+  );
+
+  // The slot filter narrows the season records too — "how do favorites do on
+  // Monday nights" is the question it's for.
+  const season = useMemo(() => summarize(allGames.filter(inSlot)), [allGames, inSlot]);
   const week = weeks.find((w) => w.key === pickedWeek) ?? weeks[weeks.length - 1];
-  const weekSummary = useMemo(() => (week ? summarize(week.games) : null), [week]);
+  const weekGames = useMemo(() => (week ? week.games.filter(inSlot) : []), [week, inSlot]);
+  const weekSummary = useMemo(() => (week ? summarize(weekGames) : null), [week, weekGames]);
+  const slotLabel = slot ? SLOT_LABELS[slot] : null;
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6">
@@ -104,7 +130,8 @@ export function LinesBoard({
           <>
             <div className="pt-6">
               <h2 className="mb-2 text-sm font-medium text-ink-dim">
-                Season so far · {season.games} games
+                Season so far{slotLabel ? ` · ${slotLabel}` : ""} · {season.games} game
+                {season.games === 1 ? "" : "s"}
               </h2>
               <SummaryCards summary={season} />
             </div>
@@ -130,9 +157,39 @@ export function LinesBoard({
               </div>
             </div>
 
+            <div className="-mx-4 mt-3 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
+              <div
+                className="flex gap-2 whitespace-nowrap"
+                role="group"
+                aria-label="Filter by game time"
+              >
+                {[null, ...slots].map((s) => {
+                  const isActive = s === slot;
+                  return (
+                    <button
+                      key={s ?? "all"}
+                      type="button"
+                      onClick={() => setSlot(s)}
+                      aria-pressed={isActive}
+                      className={`min-h-11 shrink-0 rounded-sm border px-3.5 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "border-amber text-ink"
+                          : "border-border text-ink-dim hover:text-ink"
+                      }`}
+                    >
+                      {s ? SLOT_LABELS[s] : "All games"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <section className="pt-6">
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border pb-2">
-                <h2 className="font-display text-xl font-bold text-ink">{week.label}</h2>
+                <h2 className="font-display text-xl font-bold text-ink">
+                  {week.label}
+                  {slotLabel && <span className="text-ink-dim"> · {slotLabel}</span>}
+                </h2>
                 <p className="tabular text-xs text-ink-dim">
                   Favorites {recordText(weekSummary.favoritesAts)} ATS · Overs{" "}
                   {weekSummary.totals.over}–{weekSummary.totals.under}
@@ -141,11 +198,21 @@ export function LinesBoard({
                     : ""}
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-x-6 xl:grid-cols-3">
-                {week.games.map((game) => (
-                  <LineCard key={game.id} game={game} />
-                ))}
-              </div>
+              {weekGames.length === 0 ? (
+                <EmptyState
+                  message={`No finished ${slotLabel} games in ${week.label}${
+                    week.remaining > 0 ? " yet" : ""
+                  }.`}
+                  actionLabel="Show all games"
+                  onAction={() => setSlot(null)}
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-x-6 xl:grid-cols-3">
+                  {weekGames.map((game) => (
+                    <LineCard key={game.id} game={game} />
+                  ))}
+                </div>
+              )}
             </section>
           </>
         )}

@@ -126,6 +126,14 @@ opening and closing DraftKings line — spread, total, moneyline — graded agai
 plus season-to-date records: favorites against the spread, overs/unders, favorites straight up.
 Week tabs, newest first; defaults to the latest week with a finished game. NFL only for now.
 
+**Game-time filter:** chips for Thursday night / Sunday early / Sunday late / Sunday night /
+Monday night / Other days (`gameSlot` in `lib/lines.ts`), showing only slots with a finished game.
+It narrows the week's cards *and* the season record cards ("how do favorites do on Monday
+nights"). Slots are always judged in **Eastern time**, never the guest's zone — that's how the
+NFL defines its windows, and a fixed zone keeps server and client identical. Sunday: before 3pm ET
+= early (includes 9:30am international games), 3–6pm = late, 6pm on = night. Wednesday openers,
+Saturdays, and holidays fall under "Other days".
+
 **Why a second ESPN endpoint:** the site scoreboard drops `competition.odds` once a game is
 final, so `lib/lines.ts` reads each finished game's line from ESPN's *core* API
 (`sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/{id}/competitions/{id}/odds`,
