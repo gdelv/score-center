@@ -64,7 +64,24 @@ function WeekCell({
         </span>
       </div>
       {game.state === "pre" ? (
-        <p className="text-[13px] text-ink-dim">Not played yet</p>
+        game.projected.length > 0 ? (
+          <div>
+            <p className="text-[11px] italic text-ink-dim">Projected</p>
+            <ul className="space-y-0.5">
+              {game.projected.map((p) => (
+                <li
+                  key={p.player}
+                  className="flex items-baseline justify-between gap-2 text-[13px] leading-snug text-ink-dim"
+                >
+                  <span className="truncate">{p.player}</span>
+                  <span className="tabular shrink-0">{Math.round(p.probability * 100)}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-[13px] text-ink-dim">Not played yet</p>
+        )
       ) : scorers.length === 0 ? (
         <p className="text-[13px] text-ink-dim">No TDs</p>
       ) : (
@@ -197,7 +214,9 @@ export function TouchdownBoard({
               <span>
                 <span className="text-ink">rush</span> rushing ·{" "}
                 <span className="text-ink">rec</span> receiving ·{" "}
-                <span className="text-ink">def</span> defensive/special-teams return
+                <span className="text-ink">def</span> defensive/special-teams return ·{" "}
+                <span className="text-ink">%</span> projected chance to score, from ESPN&apos;s
+                fantasy projections
               </span>
               {selectedTotal && (
                 <span className="flex items-center gap-2">

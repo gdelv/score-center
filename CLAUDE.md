@@ -160,6 +160,20 @@ The summary is ~570KB per game, so it's never fetch-cached; the parsed per-game 
 (`mapLimit`) so a cold cache late in the season doesn't fire ~280 at once. Shared NFL plumbing
 (week calendar, week scoreboard, `fetchJson`) lives in `lib/nfl.ts`, used by both NFL pages.
 
+**Projected scorers for games not played yet** replace "Not played yet": each team's top 3 by
+chance to score, from ESPN's *fantasy* API (`lm-api-reads.fantasy.espn.com/.../kona_player_info`,
+public, no key, filter passed in an `X-Fantasy-Filter` header) — the only ESPN source with
+per-player weekly TD projections. Probability = 1 − e^(−(projected rush TDs + rec TDs)), i.e.
+TDs treated as Poisson; fantasy stat ids `25` = rushing TDs, `43` = receiving TDs (passing TDs
+excluded — the passer doesn't score them). Gotchas, all hit while building it:
+- Each player carries **both this season's and last season's** projection for the same week
+  number — pick the stat entry whose `externalId` is `${year}${week}` (e.g. `"20263"`).
+- The API **rejects `limit` without a sort** (400 "Limit request must be accompanied by a sort").
+- A full slate is ~610 players / ~3MB, so the raw response is never fetch-cached; the small
+  per-team result is `unstable_cache`d for 30 min, keyed by week + the teams still to play.
+- `proTeamId` matches the scoreboard's team ids. Regular season only (fantasy has no playoff
+  weeks) — a postseason game still shows "Not played yet". OUT/IR/suspended players are dropped.
+
 **No anytime-TD odds — ESPN doesn't have them** (checked 2026-09-27, finished and upcoming games).
 The core `odds/100/propBets` feed lists DraftKings' "Anytime Touchdown Scorer" markets per
 athlete id, but `current`/`open` are always empty for TD-scorer props; only yardage-type props
