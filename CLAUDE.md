@@ -11,8 +11,9 @@ any code. Heed deprecation notices.
 ## What this is
 A guest-only board of every upcoming soccer, NFL, and ranked college football match, plus a
 `/predictions` page tracking college football spread parlays from Claude, ChatGPT, and Gemini
-against real results, and a `/lines` page of past NFL betting lines graded against final scores. No accounts, no login — visitors pick which leagues they want to see and
-the choice is remembered on that device. Not tied to a specific paying client; it's a standalone
+against real results, and a `/lines` page of past NFL betting lines graded against final scores.
+No accounts, no login — visitors pick which leagues they want to see and the choice is
+remembered on that device. Not tied to a specific paying client; it's a standalone
 product living alongside the other projects in `businessProjects/`.
 
 ## Stack
