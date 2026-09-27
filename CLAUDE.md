@@ -9,11 +9,10 @@ any code. Heed deprecation notices.
 # Score Center — Developer Guide
 
 ## What this is
-A guest-only board of every upcoming soccer, NFL, and ranked college football match, plus a
-`/predictions` page tracking college football spread parlays from Claude, ChatGPT, and Gemini
-against real results, and a `/lines` page of past NFL betting lines graded against final scores.
-No accounts, no login — visitors pick which leagues they want to see and the choice is
-remembered on that device. Not tied to a specific paying client; it's a standalone
+A guest-only board of every upcoming soccer, NFL, and ranked college football match, plus
+`/lines` (past NFL betting lines graded against final scores) and `/lines/touchdowns` (every NFL
+TD scorer by team and week). No accounts, no login — visitors pick which leagues they want to see
+and the choice is remembered on that device. Not tied to a specific paying client; it's a standalone
 product living alongside the other projects in `businessProjects/`.
 
 ## Stack
@@ -23,9 +22,7 @@ product living alongside the other projects in `businessProjects/`.
 - **Animations:** Framer Motion (client components only)
 - **Fonts:** `next/font/google` — Big Shoulders (display) + IBM Plex Sans (body)
 - **Data:** ESPN's public scoreboard JSON endpoints (see below) — no API key, no backend, no
-  database. The one exception is `data/predictions.json`, a small committed data file (not a
-  database — no writes at runtime, no user ever touches it) that holds AI parlay picks; see
-  "Predictions data" below.
+  database.
 - **Deployment:** Netlify + `@netlify/plugin-nextjs`
 
 ## Commands
@@ -123,59 +120,6 @@ actually reading one match's full context, not the fast-scanning ticker.
 network; everything downstream consumes the normalized `Match` type, so a replacement data
 source only needs a new implementation of `fetchAllUpcomingMatchesUncached()`.
 
-## Predictions data (`/predictions`)
-Three "contestants" — Claude, ChatGPT, and Gemini — each build against-the-spread college
-football parlays (3/6/9/12 legs) weekly. The user asks each AI separately (outside this app) and
-tells Claude Code the picks; there's no on-page submission form and no database — see the "How to
-add a new week's picks" question this was built to answer, below.
-
-**Data model** (`lib/predictions.ts`, data lives in `data/predictions.json`): a `PredictionsData`
-is `{ weeks: Week[] }`; each `Week` has an `id`, a display `label`, and `parlays: Parlay[]`; each
-`Parlay` is one contestant's `legCount`-leg ticket, `legs: PredictionLeg[]`. Each `PredictionLeg`
-is one game: `matchId` (must equal a real `Match.id` this app's own data layer would produce —
-`college-football-{espnEventId}`, get it from `/api/matches` or ESPN's scoreboard for that date),
-both teams' names, which side was `pick`ed, and the spread `line` *relative to the picked side*
-(e.g. `-3.5` if the pick is favored by 3.5, `+7.5` if the pick is an underdog getting 7.5).
-
-**How to add a new week's picks:** create a new entry in the `weeks` array in
-`data/predictions.json` with a fresh `id`/`label`, one `Parlay` per contestant per leg-count they
-did that week, find each game's real `matchId` via `/api/matches` (or ESPN's college-football
-scoreboard for that date) so grading can find it, then commit and let it deploy. There is
-deliberately no other step — no separate "grade this week" action, no scores to enter by hand.
-Each leg also takes an optional `reason` string — a sentence or two of why that pick was made,
-shown on hover (desktop) / tap (mobile) via `LegReasonHint.tsx`, same interaction pattern as
-`TeamMatchupHint.tsx` (mutually-exclusive hover/click handlers, not layered — see that
-component's doc comment for why) but simpler: the text is already in hand from the data file, no
-fetch or cache needed. `ParlayCard.tsx` adds a dotted underline to a pick's team name only when
-it has a `reason`, so there's a visible affordance for which picks are hoverable. Claude's own
-picks always get a `reason` explaining the actual basis for the pick (ranking, spread-as-market-
-signal, or explicit judgment call) — if the user relays ChatGPT's/Gemini's picks without their
-own stated reasoning, it's fine to leave `reason` off those legs rather than inventing one.
-
-**Grading is fully dynamic, not recorded once and left stale** (`gradeWeeks` in
-`lib/predictions.ts`, same `unstable_cache` + 120s-revalidate pattern as
-`fetchAllUpcomingMatches`, polled the same way by `PredictionsBoard.tsx`). Every page load
-re-fetches the actual college-football scoreboard for every unique date any leg needs (via
-`fetchLeagueMatches`, exported from `lib/espn.ts` for exactly this reuse — it takes a specific
-date range rather than the rolling "yesterday onward" window `fetchAllUpcomingMatches` uses) and
-computes each leg's status fresh: `pending` (game hasn't started), `live` (in progress — a
-`covering` boolean is computed the same way as final grading, so a live leg's current lean shows
-without pretending it's final), `hit`/`miss`/`push` once the game ends. A parlay's own status
-(`pending`/`alive`/`won`/`busted`) follows real parlay rules: any missed leg busts the whole
-thing regardless of the rest; a push neither wins nor loses its leg. This means a "busted"
-parlay never quietly reverts, and a from-last-week parlay whose final leg just finished updates
-on its own — nothing about this needed last week's grade to be written down anywhere.
-
-`ParlayCard.tsx`'s per-leg status column shows whichever of time/score is actually meaningful
-right now, not a static dash: kickoff time (via `matchTime`, same helper and same local-timezone
-convention as the main scores page) while `pending`, the live score while `live`, the final score
-once decided — matching how the main board itself represents a match at each stage.
-
-**Why against-the-spread, not moneyline or a mix:** it's the standard shape for a real parlay and
-matches the betting-odds data already on the main board (same DraftKings-via-ESPN source), and a
-single bet type keeps grading (and comparing the three AIs) uniform instead of needing a
-type-specific evaluator per leg.
-
 ## NFL lines (`/lines`)
 Every finished NFL game this season (regular season + postseason, preseason skipped) with its
 opening and closing DraftKings line — spread, total, moneyline — graded against the final score,
@@ -238,9 +182,6 @@ which needs a key, and a paid plan for past games) — the user decided to skip 
 | `components/TeamMatchupHint.tsx` | Hover (desktop) / tap (mobile) a team on a non-live match to see that team's own last result |
 | `components/LiveBadge.tsx` | Pulsing live indicator, reused in the hero and in rows |
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
-| `components/PredictionsBoard.tsx` | Client orchestrator for `/predictions` — same polling pattern as `ScoreCenter.tsx` |
-| `components/PredictionsLeaderboard.tsx` / `PredictionsWeek.tsx` / `ParlayCard.tsx` | Season record cards, per-week grouping, one parlay's legs |
-| `components/LegReasonHint.tsx` | Hover (desktop) / tap (mobile) a pick to read why it was made |
 | `components/LinesBoard.tsx` / `LineCard.tsx` | `/lines` — season summary cards, week tabs, one card per finished game (spread/total/moneyline, open → close, result) |
 | `components/TouchdownBoard.tsx` | `/lines/touchdowns` — team × week grid of TD scorers, season leaders, tap-to-highlight a player |
 | `components/LinesNav.tsx` | "Betting lines / TD scorers" sub-nav shared by the two NFL pages |
@@ -418,7 +359,7 @@ Specific UX calls, from Irene Pereyra's *Universal Principles of UX*:
   client hydration finishes. On a slower device, or whenever hydration lags first paint, that wrong
   value is what the guest actually sees, confirmed by `curl`ing the prerendered HTML directly and
   finding the wrong local-format time baked into the static markup. The fix in `MatchRow.tsx`,
-  `NextMatchPanel.tsx`, `ParlayCard.tsx`, and `Header.tsx` is to gate the locale-dependent text
+  `NextMatchPanel.tsx`, `LineCard.tsx`, and `Header.tsx` is to gate the locale-dependent text
   behind `useHasMounted()` (a `useSyncExternalStore` hook that's `false` on the server and first
   client paint, `true` from then on) instead of `suppressHydrationWarning`, rendering nothing (or a
   non-breaking space, to hold layout height) until mounted. Server output and first client paint
@@ -472,3 +413,10 @@ Playwright contexts at extreme, far-apart `timezoneId`s rather than just your ow
 - `netlify.toml` at project root handles build + plugin config (standard `@netlify/plugin-nextjs`
   setup, matching every other project in this repo)
 - No environment variables or secrets required — the ESPN endpoints are public
+
+## Removed: `/predictions` (2026-09-27)
+There used to be a `/predictions` page tracking Claude/ChatGPT/Gemini college football spread
+parlays (`lib/predictions.ts`, `data/predictions.json`, `PredictionsBoard`/`ParlayCard`/etc.).
+The user asked for it to be removed. `next.config.ts` sends `/predictions` to `/` with a
+non-permanent redirect. To bring it back, restore those files from git history (the commit just
+before "Remove predictions page").

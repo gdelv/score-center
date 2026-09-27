@@ -17,7 +17,6 @@ function agoLabel(seconds: number): string {
 
 const NAV_LINKS = [
   { href: "/", label: "Scores", match: "scores" },
-  { href: "/predictions", label: "Predictions", match: "predictions" },
   { href: "/lines", label: "NFL Lines", match: "lines" },
 ] as const;
 

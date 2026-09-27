@@ -178,8 +178,8 @@ function toTeam(
   };
 }
 
-/** Exported for `lib/predictions.ts` — same YYYYMMDD format ESPN's `dates` param expects. */
-export function formatYmd(d: Date): string {
+/** YYYYMMDD, the format ESPN's `dates` param expects. */
+function formatYmd(d: Date): string {
   return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(
     d.getUTCDate(),
   ).padStart(2, "0")}`;
@@ -302,18 +302,13 @@ function toMatch(league: LeagueConfig, e: EspnEvent): Match {
 
 /**
  * Fetches one league's scoreboard for the given date window. Never throws.
- * Exported for `lib/predictions.ts`, which needs a specific past date (a
- * pick's kickoff day) rather than the rolling "yesterday onward" window
- * `fetchAllUpcomingMatches` uses — the same normalization applies either way.
  *
- * Includes finished ("post") games too — the window's start is pinned to (at
- * most) yesterday, never further back, so a finished game returned here is
- * always from yesterday or today, never real history. Callers that only want
- * the upcoming board filter state==="post" back out themselves; the live
- * ticker's finished-game fallback wants exactly these, including last
- * night's, until something newer goes live.
+ * Includes finished ("post") games too. The upcoming board filters those
+ * back out itself; the live ticker's finished-game fallback wants them
+ * (last night's included, until something newer goes live), and so does the
+ * date picker, where a past day's results are the whole point.
  */
-export async function fetchLeagueMatches(
+async function fetchLeagueMatches(
   league: LeagueConfig,
   fromYmd: string,
   toYmd: string,
