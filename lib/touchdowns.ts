@@ -29,18 +29,27 @@ export interface TdTeam {
 
 /** A player's chance to score at least one TD in an upcoming game, from ESPN's projections. */
 export interface ProjectedScorer {
+  /** ESPN athlete id (fantasy player ids are the same ids). */
+  id: string;
   player: string;
+  position: "QB" | "RB" | "WR" | "TE";
   /** 0-1. */
   probability: number;
 }
 
 /** One team's game in one week. A team missing from a week's `teams` had a bye. */
 export interface TeamWeek {
+  /** Kickoff, ISO UTC — TD parlay picks lock at this time. */
+  date: string;
   opponent: string;
   home: boolean;
   state: "pre" | "in" | "post";
   touchdowns: Touchdown[];
-  /** Only for a not-yet-played regular-season game; most likely first. Empty if ESPN has none. */
+  /**
+   * Only for a not-yet-played regular-season game; most likely first. Every
+   * projected QB/RB/WR/TE with a real chance (the TD grid shows the top 3;
+   * the TD parlay page offers them all as picks). Empty if ESPN has none.
+   */
   projected: ProjectedScorer[];
 }
 
@@ -145,19 +154,29 @@ const REC_TD = "43";
 // Injury statuses that mean the player won't play; their projections are
 // near zero anyway, but a ruled-out name shouldn't appear at all.
 const RULED_OUT = new Set(["OUT", "INJURY_RESERVE", "SUSPENSION"]);
-const PROJECTED_PER_TEAM = 3;
+// Below this, it's a backup who'd only score by accident — not worth listing.
+const MIN_PROBABILITY = 0.02;
+// Fantasy defaultPositionId -> position, for the slots requested (0/2/4/6).
+const FANTASY_POSITIONS: Record<number, ProjectedScorer["position"]> = {
+  1: "QB",
+  2: "RB",
+  3: "WR",
+  4: "TE",
+};
 
 interface FantasyPlayer {
   player: {
+    id: number;
     fullName: string;
     proTeamId: number;
+    defaultPositionId: number;
     injuryStatus?: string;
     stats?: { externalId?: string; statSourceId?: number; stats?: Record<string, number> }[];
   };
 }
 
 /**
- * Top projected TD scorers per team for one regular-season week, keyed by
+ * Projected TD scorers per team for one regular-season week, keyed by
  * team id (fantasy `proTeamId` is the same id the scoreboard uses). The raw
  * response runs ~5KB per player — a few MB for a full slate — so it's never
  * fetch-cached; the small result is cached below instead.
@@ -200,15 +219,19 @@ async function fetchWeekProjections(
     if (RULED_OUT.has(player.injuryStatus ?? "")) continue;
     const stats = player.stats?.find((st) => st.externalId === externalId)?.stats;
     const expected = (stats?.[RUSH_TD] ?? 0) + (stats?.[REC_TD] ?? 0);
-    if (expected <= 0) continue;
     // Expected TDs -> chance of at least one, treating TDs as Poisson.
     const probability = 1 - Math.exp(-expected);
-    (byTeam[String(player.proTeamId)] ??= []).push({ player: player.fullName, probability });
+    const position = FANTASY_POSITIONS[player.defaultPositionId];
+    if (probability < MIN_PROBABILITY || !position) continue;
+    (byTeam[String(player.proTeamId)] ??= []).push({
+      id: String(player.id),
+      player: player.fullName,
+      position,
+      probability,
+    });
   }
   for (const teamId of Object.keys(byTeam)) {
-    byTeam[teamId] = byTeam[teamId]
-      .sort((a, b) => b.probability - a.probability)
-      .slice(0, PROJECTED_PER_TEAM);
+    byTeam[teamId].sort((a, b) => b.probability - a.probability);
   }
   return byTeam;
 }
@@ -312,6 +335,7 @@ async function fetchSeasonTouchdownsUncached(): Promise<TdSeason> {
         const opponent = competitors.find((o) => o !== c);
         teams.set(c.team.id, toTeam(c));
         byTeam[c.team.id] = {
+          date: e.date,
           opponent: opponent?.team.abbreviation ?? "TBD",
           home: c.homeAway === "home",
           state: e.status.type.state,
@@ -413,3 +437,17 @@ export const LEADER_POSITIONS: {
     counts: (td) => td.position === "QB" && td.kind === "rush",
   },
 ];
+
+/**
+ * Loose player-name equality: case, punctuation and Jr./Sr./II/III suffixes
+ * ignored. Scoring-play text and fantasy/roster names mostly agree exactly,
+ * but suffixes and periods ("D.J." vs "DJ") are where they drift.
+ */
+export function sameName(a: string, b: string): boolean {
+  const norm = (name: string) =>
+    name
+      .toLowerCase()
+      .replace(/\b(jr|sr|ii|iii|iv|v)\.?$/, "")
+      .replace(/[^a-z]/g, "");
+  return norm(a) === norm(b);
+}

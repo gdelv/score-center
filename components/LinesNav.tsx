@@ -3,6 +3,7 @@ import Link from "next/link";
 const TABS = [
   { href: "/lines", label: "Betting lines", id: "lines" },
   { href: "/lines/touchdowns", label: "TD scorers", id: "touchdowns" },
+  { href: "/lines/parlay", label: "TD parlay", id: "parlay" },
 ] as const;
 
 /** Sub-navigation between the NFL pages, which share the header's "NFL Lines" slot. */

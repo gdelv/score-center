@@ -10,8 +10,8 @@ any code. Heed deprecation notices.
 
 ## What this is
 A guest-only board of every upcoming soccer, NFL, and ranked college football match, plus
-`/lines` (past NFL betting lines graded against final scores) and `/lines/touchdowns` (every NFL
-TD scorer by team and week). No accounts, no login — visitors pick which leagues they want to see
+`/lines` (past NFL betting lines graded against final scores), `/lines/touchdowns` (every NFL
+TD scorer by team and week), and `/lines/parlay` (a friend group's weekly anytime-TD parlay). No accounts, no login — visitors pick which leagues they want to see
 and the choice is remembered on that device. Not tied to a specific paying client; it's a standalone
 product living alongside the other projects in `businessProjects/`.
 
@@ -21,8 +21,9 @@ product living alongside the other projects in `businessProjects/`.
   there is no `tailwind.config.js`)
 - **Animations:** Framer Motion (client components only)
 - **Fonts:** `next/font/google` — Big Shoulders (display) + IBM Plex Sans (body)
-- **Data:** ESPN's public scoreboard JSON endpoints (see below) — no API key, no backend, no
-  database.
+- **Data:** ESPN's public JSON endpoints (see below) — no API key. The one piece of stored,
+  user-written data is TD parlay picks, in **Netlify Blobs** (`@netlify/blobs`, zero-config on
+  Netlify) — see "TD parlay" below. Everything else is read live, nothing else is stored.
 - **Deployment:** Netlify + `@netlify/plugin-nextjs`
 
 ## Commands
@@ -195,6 +196,34 @@ athlete id, but `current`/`open` are always empty for TD-scorer props; only yard
 carry a `target` line, and never a price. Adding TD odds means a new source (e.g. The Odds API,
 which needs a key, and a paid plan for past games) — the user decided to skip it for now.
 
+### TD parlay (`/lines/parlay`)
+A fixed friend group (`PICKERS` in `lib/parlay.ts`: Giusseppe, Dana, Mike, Irene, Daniel, Gabriel,
+Vany, Mikael, Cristian) each picks one player per week to score an anytime TD; every pick is a leg
+of the group's parlay, which hits only if every leg scores. No login — names are honor system.
+- **Pickable players** = every projected QB/RB/WR/TE (≥2% chance) on a team whose game hasn't
+  kicked off in the open week (`openWeek`: latest week with a game still "pre"). That's the full
+  `TeamWeek.projected` list from ESPN's fantasy projections; the TD grid shows only its top 3.
+- **Picks lock at the player's kickoff.** `POST /api/parlay` validates everything server-side
+  (name on the list, player in that team's projections, game `pre` *and* before `date`) and
+  refuses to replace a pick whose game has started. One pick per person per week.
+- **Grading is live, never stored** (`gradeParlays`, pure, runs client-side): a leg is `hit` the
+  moment the player scores (even mid-game — a TD can't be taken back), `miss` once the game is
+  final without one; names matched with `sameName` (case/punctuation/Jr./III-insensitive).
+  Parlay: any miss = busted, all hit = won.
+- **Storage** (`lib/parlay-store.ts`, server only): Netlify Blobs store `td-parlay-picks`, one
+  blob per `{season}/{weekKey}/{picker}` (so simultaneous saves never clobber each other),
+  `consistency: "strong"` so a pick shows on the next read. `GET`/`POST /api/parlay` send
+  `Cache-Control: no-store` — this must never be CDN-cached. Picks aren't prerendered;
+  `ParlayBoard` loads them after mount and polls every 60s.
+- **Local dev:** Blobs needs the Netlify runtime, so run with `PICKS_STORE=memory npm run dev`
+  (or `start`) — picks live in the server process. Deliberately opt-in, not an automatic
+  fallback, so a misconfigured deploy errors instead of silently losing picks. It's in-memory,
+  not a file, because a dynamic `fs` path makes Next trace the whole project into the server
+  bundle (build warning "Dynamic filesystem access causes tracing of the whole project").
+- **History** (`data/td-parlay-history.json`): the group's Week 1 (won) and Week 2 (busted)
+  parlays from before the page existed — legs only, no picker recorded, graded live like
+  everything else. Nothing to add there going forward; new weeks come from the form.
+
 ## Component map
 | Component | Purpose |
 |-----------|---------|
@@ -214,12 +243,14 @@ which needs a key, and a paid plan for past games) — the user decided to skip 
 | `components/LinesBoard.tsx` / `LineCard.tsx` | `/lines` — season summary cards, week tabs, one card per finished game (spread/total/moneyline, open → close, result) |
 | `components/TouchdownBoard.tsx` | `/lines/touchdowns` — team × week grid of TD scorers, season leaders, tap-to-highlight a player |
 | `components/SlotFilter.tsx` | Game-time slot chips (Thursday night, Sunday early/late/night, …) on `/lines` |
+| `components/ParlayBoard.tsx` | `/lines/parlay` — pick form (name → game → player), this week's legs, standings, past weeks |
 | `components/LinesNav.tsx` | "Betting lines / TD scorers" sub-nav shared by the two NFL pages |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
 | `lib/espn.ts`, `lib/leagues.ts`, `lib/format.ts` | Data fetching, league config, date/time formatting |
 | `lib/lines.ts` | NFL past lines: ESPN core odds fetching, and the pure grading helpers |
 | `lib/touchdowns.ts` | NFL TD scorers: summary `scoringPlays` fetching/parsing, per-player totals |
+| `lib/parlay.ts` / `lib/parlay-store.ts` | TD parlay: pickers, pure grading (client-safe) / Netlify Blobs storage (server only) |
 | `lib/nfl.ts` | Shared ESPN NFL plumbing: week calendar, per-week scoreboard, `fetchJson` |
 
 ## Design rationale
@@ -442,7 +473,9 @@ Playwright contexts at extreme, far-apart `timezoneId`s rather than just your ow
 ## Deploy
 - `netlify.toml` at project root handles build + plugin config (standard `@netlify/plugin-nextjs`
   setup, matching every other project in this repo)
-- No environment variables or secrets required — the ESPN endpoints are public
+- No environment variables or secrets required — the ESPN endpoints are public, and Netlify
+  Blobs is configured automatically by the Netlify runtime. `PICKS_STORE=memory` is for local
+  dev only; never set it on Netlify.
 
 ## Removed: `/predictions` (2026-09-27)
 There used to be a `/predictions` page tracking Claude/ChatGPT/Gemini college football spread

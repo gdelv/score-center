@@ -129,7 +129,7 @@ function WeekCell({
           <div>
             <p className="text-[11px] italic text-ink-dim">Projected</p>
             <ul className="space-y-0.5">
-              {game.projected.map((p) => (
+              {game.projected.slice(0, 3).map((p) => (
                 <li
                   key={p.player}
                   className="flex items-baseline justify-between gap-2 text-[13px] leading-snug text-ink-dim"
