@@ -152,9 +152,8 @@ Grid of every team (rows) × every week (columns, newest first) listing who scor
 touchdowns, tagged rush/rec/def, with "vs/@ opponent", "Bye" for a missing week, a live dot for
 games in progress, and "Most TDs by position" boards (top 5 WR / RB / TE, and QB counting
 **rushing TDs only** — a QB's passing TDs are scored by the receiver; FBs count as RBs; ties past
-5th are summarized as "+N more with K"). Tapping any scorer highlights all their cells. The same
-game-time filter as `/lines` (`SlotFilter.tsx`, shared) narrows the boards, team totals, and grid:
-teams with no game in the slot are hidden, and their other weeks show "—". A sub-nav
+5th are summarized as "+N more with K"). Tapping any scorer highlights all their cells. No game-time filter here —
+it had one briefly and the user asked for it removed; it's `/lines` only. A sub-nav
 (`LinesNav.tsx`) switches between this and `/lines`; both share the header's "NFL Lines" slot.
 
 Scorers come from the game summary's `scoringPlays` (`lib/touchdowns.ts`). Two non-obvious
@@ -214,7 +213,7 @@ which needs a key, and a paid plan for past games) — the user decided to skip 
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
 | `components/LinesBoard.tsx` / `LineCard.tsx` | `/lines` — season summary cards, week tabs, one card per finished game (spread/total/moneyline, open → close, result) |
 | `components/TouchdownBoard.tsx` | `/lines/touchdowns` — team × week grid of TD scorers, season leaders, tap-to-highlight a player |
-| `components/SlotFilter.tsx` | Game-time slot chips (Thursday night, Sunday early/late/night, …) shared by both NFL pages |
+| `components/SlotFilter.tsx` | Game-time slot chips (Thursday night, Sunday early/late/night, …) on `/lines` |
 | `components/LinesNav.tsx` | "Betting lines / TD scorers" sub-nav shared by the two NFL pages |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |

@@ -36,8 +36,6 @@ export interface ProjectedScorer {
 
 /** One team's game in one week. A team missing from a week's `teams` had a bye. */
 export interface TeamWeek {
-  /** Kickoff, ISO UTC — for the game-time slot filter. */
-  date: string;
   opponent: string;
   home: boolean;
   state: "pre" | "in" | "post";
@@ -314,7 +312,6 @@ async function fetchSeasonTouchdownsUncached(): Promise<TdSeason> {
         const opponent = competitors.find((o) => o !== c);
         teams.set(c.team.id, toTeam(c));
         byTeam[c.team.id] = {
-          date: e.date,
           opponent: opponent?.team.abbreviation ?? "TBD",
           home: c.homeAway === "home",
           state: e.status.type.state,
@@ -365,22 +362,15 @@ export function scorerKey(teamId: string, player: string): string {
   return `${teamId}:${player}`;
 }
 
-/** Which team-weeks count — e.g. only games in one time slot. Defaults to all. */
-export type GameFilter = (game: TeamWeek) => boolean;
-
-const everyGame: GameFilter = () => true;
-
-/** TD totals per player across the games `include` keeps, most first. */
+/** Season TD totals per player, most first — only the TDs `counts` keeps (e.g. one position). */
 export function scorerTotals(
   season: TdSeason,
-  include: GameFilter = everyGame,
   counts: (td: Touchdown) => boolean = () => true,
 ): ScorerTotal[] {
   const abbr = new Map(season.teams.map((t) => [t.id, t.abbreviation]));
   const totals = new Map<string, ScorerTotal>();
   for (const week of season.weeks) {
     for (const [teamId, game] of Object.entries(week.teams)) {
-      if (!include(game)) continue;
       for (const td of game.touchdowns) {
         if (!counts(td)) continue;
         const key = scorerKey(teamId, td.player);
