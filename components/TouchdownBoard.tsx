@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { SLOT_LABELS, gameSlot, type GameSlot } from "@/lib/lines";
 import {
+  LEADER_POSITIONS,
   scorerKey,
   scorerTotals,
+  type GameFilter,
+  type ScorerTotal,
   type TdKind,
   type TdSeason,
   type TeamWeek,
@@ -13,10 +17,70 @@ import { Header } from "./Header";
 import { LinesNav } from "./LinesNav";
 import { TeamLogo } from "./TeamLogo";
 import { EmptyState } from "./EmptyState";
+import { SlotFilter, slotsPresent } from "./SlotFilter";
 
 const POLL_MS = 90_000;
 
 const KIND_LABEL: Record<TdKind, string> = { rush: "rush", rec: "rec", def: "def" };
+const TOP_N = 5;
+
+function PositionBoard({
+  label,
+  totals,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  totals: ScorerTotal[];
+  selected: string | null;
+  onSelect: (key: string) => void;
+}) {
+  const shown = totals.slice(0, TOP_N);
+  // Say how many more share the last shown count rather than cutting a tie
+  // at an arbitrary name — early in the season a dozen TEs can have 1 TD.
+  const cutoff = shown[shown.length - 1]?.count;
+  const moreTied = totals.slice(TOP_N).filter((t) => t.count === cutoff).length;
+
+  return (
+    <div className="rounded-sm border border-border p-4">
+      <h3 className="text-xs text-ink-dim">{label}</h3>
+      {shown.length === 0 ? (
+        <p className="mt-2 text-[13px] text-ink-dim">No TDs yet.</p>
+      ) : (
+        <ol className="mt-2 space-y-0.5">
+          {shown.map((t) => {
+            const isSelected = t.key === selected;
+            return (
+              <li key={t.key}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(t.key)}
+                  aria-pressed={isSelected}
+                  className="flex min-h-9 w-full items-center gap-2 text-left text-sm"
+                >
+                  <span
+                    className={`truncate ${isSelected ? "font-semibold text-amber" : "font-medium text-ink"}`}
+                  >
+                    {t.player}
+                  </span>
+                  <span className="shrink-0 text-xs text-ink-dim">{t.team}</span>
+                  <span className="tabular ml-auto shrink-0 font-display text-lg font-bold text-ink">
+                    {t.count}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {moreTied > 0 && (
+        <p className="tabular mt-1 text-xs text-ink-dim">
+          +{moreTied} more with {cutoff}
+        </p>
+      )}
+    </div>
+  );
+}
 
 interface CellScorer {
   player: string;
@@ -41,15 +105,19 @@ function groupScorers(touchdowns: Touchdown[]): CellScorer[] {
 function WeekCell({
   teamId,
   game,
+  outsideSlot,
   selected,
   onSelect,
 }: {
   teamId: string;
   game: TeamWeek | undefined;
+  /** The game exists but isn't in the time slot being filtered to. */
+  outsideSlot: boolean;
   selected: string | null;
   onSelect: (key: string) => void;
 }) {
   if (!game) return <span className="text-[13px] italic text-ink-dim">Bye</span>;
+  if (outsideSlot) return <span className="text-[13px] text-ink-dim">—</span>;
 
   const scorers = groupScorers(game.touchdowns);
 
@@ -127,6 +195,8 @@ export function TouchdownBoard({
   const [fetchedAt, setFetchedAt] = useState(initialFetchedAt);
   // `${teamId}:${player}` of the scorer highlighted across the grid, if any.
   const [selected, setSelected] = useState<string | null>(null);
+  // null = every time slot.
+  const [slot, setSlot] = useState<GameSlot | null>(null);
 
   useEffect(() => {
     const id = setInterval(async () => {
@@ -143,10 +213,28 @@ export function TouchdownBoard({
     return () => clearInterval(id);
   }, []);
 
-  const totals = useMemo(() => scorerTotals(season), [season]);
-  // Top 8, plus anyone tied with 8th — cutting a tie at an arbitrary name
-  // would make the list look like a ranking it isn't.
-  const leaders = totals.filter((t) => t.count >= (totals[7]?.count ?? 0));
+  const slots = useMemo(
+    () =>
+      slotsPresent(
+        season.weeks.flatMap((w) =>
+          Object.values(w.teams)
+            .filter((g) => g.state !== "pre")
+            .map((g) => g.date),
+        ),
+      ),
+    [season],
+  );
+  const inSlot = useMemo<GameFilter>(
+    () => (game) => slot === null || gameSlot(game.date) === slot,
+    [slot],
+  );
+  const slotLabel = slot ? SLOT_LABELS[slot] : null;
+
+  const totals = useMemo(() => scorerTotals(season, inSlot), [season, inSlot]);
+  const positionBoards = useMemo(
+    () => LEADER_POSITIONS.map((p) => ({ ...p, totals: scorerTotals(season, inSlot, p.counts) })),
+    [season, inSlot],
+  );
   const selectedTotal = totals.find((t) => t.key === selected);
   // Newest week first, so the latest results are visible without scrolling
   // sideways on a phone — same order as the week tabs on /lines.
@@ -156,11 +244,23 @@ export function TouchdownBoard({
     const counts = new Map<string, number>();
     for (const week of season.weeks) {
       for (const [teamId, game] of Object.entries(week.teams)) {
+        if (!inSlot(game)) continue;
         counts.set(teamId, (counts.get(teamId) ?? 0) + game.touchdowns.length);
       }
     }
     return counts;
-  }, [season]);
+  }, [season, inSlot]);
+
+  // With a slot picked, only teams that played (or will play) in it.
+  const visibleTeams = useMemo(
+    () =>
+      slot === null
+        ? season.teams
+        : season.teams.filter((t) =>
+            season.weeks.some((w) => w.teams[t.id] && inSlot(w.teams[t.id])),
+          ),
+    [season, slot, inSlot],
+  );
 
   const toggle = (key: string) => setSelected((current) => (current === key ? null : key));
 
@@ -182,33 +282,26 @@ export function TouchdownBoard({
           <EmptyState message="No NFL games played yet this season." />
         ) : (
           <>
-            {leaders.length > 0 && (
-              <div className="pt-6">
-                <h2 className="mb-2 text-sm font-medium text-ink-dim">Season leaders</h2>
-                <div className="flex flex-wrap gap-2">
-                  {leaders.map((t) => {
-                    const isSelected = t.key === selected;
-                    return (
-                      <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => toggle(t.key)}
-                        aria-pressed={isSelected}
-                        className={`flex min-h-11 items-center gap-2 rounded-sm border px-3 text-sm ${
-                          isSelected
-                            ? "border-amber text-ink"
-                            : "border-border text-ink hover:border-ink-dim"
-                        }`}
-                      >
-                        <span className="font-medium">{t.player}</span>
-                        <span className="text-xs text-ink-dim">{t.team}</span>
-                        <span className="tabular font-display text-lg font-bold">{t.count}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            <div className="pt-6">
+              <SlotFilter slots={slots} value={slot} onChange={setSlot} />
+            </div>
+
+            <div className="pt-6">
+              <h2 className="mb-2 text-sm font-medium text-ink-dim">
+                Most TDs by position{slotLabel ? ` · ${slotLabel}` : ""}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {positionBoards.map((board) => (
+                  <PositionBoard
+                    key={board.id}
+                    label={board.label}
+                    totals={board.totals}
+                    selected={selected}
+                    onSelect={toggle}
+                  />
+                ))}
               </div>
-            )}
+            </div>
 
             <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-6 text-xs text-ink-dim">
               <span>
@@ -253,7 +346,7 @@ export function TouchdownBoard({
                   </tr>
                 </thead>
                 <tbody>
-                  {season.teams.map((team) => (
+                  {visibleTeams.map((team) => (
                     <tr key={team.id}>
                       <th
                         scope="row"
@@ -273,9 +366,9 @@ export function TouchdownBoard({
                         const game = week.teams[team.id];
                         const hasSelected =
                           selected !== null &&
-                          !!game?.touchdowns.some(
-                            (td) => scorerKey(team.id, td.player) === selected,
-                          );
+                          !!game &&
+                          inSlot(game) &&
+                          game.touchdowns.some((td) => scorerKey(team.id, td.player) === selected);
                         return (
                           <td
                             key={week.key}
@@ -288,6 +381,7 @@ export function TouchdownBoard({
                             <WeekCell
                               teamId={team.id}
                               game={game}
+                              outsideSlot={!!game && !inSlot(game)}
                               selected={selected}
                               onSelect={toggle}
                             />

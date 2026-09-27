@@ -13,6 +13,7 @@ import {
 import { Header } from "./Header";
 import { LineCard } from "./LineCard";
 import { EmptyState } from "./EmptyState";
+import { SlotFilter, slotsPresent } from "./SlotFilter";
 import { LinesNav } from "./LinesNav";
 
 const POLL_MS = 90_000;
@@ -94,10 +95,7 @@ export function LinesBoard({
   const allGames = useMemo(() => weeks.flatMap((w) => w.games), [weeks]);
   // Only offer slots that actually have a finished game this season, in
   // schedule order.
-  const slots = useMemo(() => {
-    const present = new Set(allGames.map((g) => gameSlot(g.date)));
-    return (Object.keys(SLOT_LABELS) as GameSlot[]).filter((s) => present.has(s));
-  }, [allGames]);
+  const slots = useMemo(() => slotsPresent(allGames.map((g) => g.date)), [allGames]);
   const inSlot = useMemo(
     () => (game: { date: string }) => slot === null || gameSlot(game.date) === slot,
     [slot],
@@ -157,31 +155,8 @@ export function LinesBoard({
               </div>
             </div>
 
-            <div className="-mx-4 mt-3 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
-              <div
-                className="flex gap-2 whitespace-nowrap"
-                role="group"
-                aria-label="Filter by game time"
-              >
-                {[null, ...slots].map((s) => {
-                  const isActive = s === slot;
-                  return (
-                    <button
-                      key={s ?? "all"}
-                      type="button"
-                      onClick={() => setSlot(s)}
-                      aria-pressed={isActive}
-                      className={`min-h-11 shrink-0 rounded-sm border px-3.5 text-sm font-medium transition-colors ${
-                        isActive
-                          ? "border-amber text-ink"
-                          : "border-border text-ink-dim hover:text-ink"
-                      }`}
-                    >
-                      {s ? SLOT_LABELS[s] : "All games"}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mt-3">
+              <SlotFilter slots={slots} value={slot} onChange={setSlot} />
             </div>
 
             <section className="pt-6">

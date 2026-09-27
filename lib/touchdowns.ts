@@ -16,6 +16,8 @@ export interface Touchdown {
   kind: TdKind;
   /** ESPN's own play text, e.g. "Joshua Palmer 43 Yd pass from Josh Allen (Tyler Bass Kick)". */
   text: string;
+  /** Roster position ("QB", "RB", "WR", "TE", "CB", …); null if the name isn't on a roster. */
+  position: string | null;
 }
 
 export interface TdTeam {
@@ -34,6 +36,8 @@ export interface ProjectedScorer {
 
 /** One team's game in one week. A team missing from a week's `teams` had a bye. */
 export interface TeamWeek {
+  /** Kickoff, ISO UTC — for the game-time slot filter. */
+  date: string;
   opponent: string;
   home: boolean;
   state: "pre" | "in" | "post";
@@ -81,7 +85,7 @@ function toKind(typeText: string | undefined): TdKind {
   return "def";
 }
 
-type GameTouchdowns = { teamId: string; touchdown: Touchdown }[];
+type GameTouchdowns = { teamId: string; touchdown: Omit<Touchdown, "position"> }[];
 
 /**
  * One game's touchdowns, from the game summary's `scoringPlays`. The summary
@@ -219,6 +223,34 @@ const cachedWeekProjections = unstable_cache(
   { revalidate: 1800 },
 );
 
+interface EspnRoster {
+  athletes?: { items?: { displayName: string; position?: { abbreviation?: string } }[] }[];
+}
+
+/**
+ * Player name -> roster position for one team. Scoring plays carry only the
+ * scorer's name, and the game summary's boxscore has no positions, so this
+ * is the one place positions come from. ~350KB raw per team; the small map
+ * is cached for a day — positions barely change mid-season.
+ */
+async function fetchTeamPositions(teamId: string): Promise<Record<string, string>> {
+  const roster = await fetchJson<EspnRoster>(`${SITE}/teams/${teamId}/roster`);
+  const positions: Record<string, string> = {};
+  for (const group of roster?.athletes ?? []) {
+    for (const athlete of group.items ?? []) {
+      if (athlete.position?.abbreviation)
+        positions[athlete.displayName] = athlete.position.abbreviation;
+    }
+  }
+  return positions;
+}
+
+const cachedTeamPositions = unstable_cache(
+  fetchTeamPositions,
+  ["score-center-nfl-team-positions"],
+  { revalidate: 86_400 },
+);
+
 function toTeam(c: EspnCompetitor): TdTeam {
   return {
     id: c.team.id,
@@ -255,6 +287,23 @@ async function fetchSeasonTouchdownsUncached(): Promise<TdSeason> {
     }),
   );
 
+  // Positions for every team that has scored. Looked up on the scoring team's
+  // current roster first; a player traded since falls back to whichever
+  // roster he's on now, as long as that name is unique league-wide.
+  const scoringTeamIds = [...new Set([...tdsByEvent.values()].flat().map((t) => t.teamId))].sort();
+  const rosters = new Map<string, Record<string, string>>();
+  await mapLimit(scoringTeamIds, 8, async (teamId) => {
+    rosters.set(teamId, await cachedTeamPositions(teamId));
+  });
+  const leagueWide = new Map<string, string | null>();
+  for (const roster of rosters.values()) {
+    for (const [name, position] of Object.entries(roster)) {
+      leagueWide.set(name, leagueWide.has(name) ? null : position);
+    }
+  }
+  const positionOf = (teamId: string, player: string) =>
+    rosters.get(teamId)?.[player] ?? leagueWide.get(player) ?? null;
+
   const teams = new Map<string, TdTeam>();
   const weeks = started.map((week, i): TdWeek => {
     const byTeam: Record<string, TeamWeek> = {};
@@ -265,10 +314,13 @@ async function fetchSeasonTouchdownsUncached(): Promise<TdSeason> {
         const opponent = competitors.find((o) => o !== c);
         teams.set(c.team.id, toTeam(c));
         byTeam[c.team.id] = {
+          date: e.date,
           opponent: opponent?.team.abbreviation ?? "TBD",
           home: c.homeAway === "home",
           state: e.status.type.state,
-          touchdowns: tds.filter((t) => t.teamId === c.team.id).map((t) => t.touchdown),
+          touchdowns: tds
+            .filter((t) => t.teamId === c.team.id)
+            .map((t) => ({ ...t.touchdown, position: positionOf(c.team.id, t.touchdown.player) })),
           projected: e.status.type.state === "pre" ? (projections[i][c.team.id] ?? []) : [],
         };
       }
@@ -313,13 +365,24 @@ export function scorerKey(teamId: string, player: string): string {
   return `${teamId}:${player}`;
 }
 
-/** Season TD totals per player, most first. */
-export function scorerTotals(season: TdSeason): ScorerTotal[] {
+/** Which team-weeks count — e.g. only games in one time slot. Defaults to all. */
+export type GameFilter = (game: TeamWeek) => boolean;
+
+const everyGame: GameFilter = () => true;
+
+/** TD totals per player across the games `include` keeps, most first. */
+export function scorerTotals(
+  season: TdSeason,
+  include: GameFilter = everyGame,
+  counts: (td: Touchdown) => boolean = () => true,
+): ScorerTotal[] {
   const abbr = new Map(season.teams.map((t) => [t.id, t.abbreviation]));
   const totals = new Map<string, ScorerTotal>();
   for (const week of season.weeks) {
     for (const [teamId, game] of Object.entries(week.teams)) {
+      if (!include(game)) continue;
       for (const td of game.touchdowns) {
+        if (!counts(td)) continue;
         const key = scorerKey(teamId, td.player);
         const entry = totals.get(key) ?? {
           key,
@@ -334,3 +397,29 @@ export function scorerTotals(season: TdSeason): ScorerTotal[] {
   }
   return [...totals.values()].sort((a, b) => b.count - a.count || a.player.localeCompare(b.player));
 }
+
+export type LeaderPosition = "WR" | "RB" | "TE" | "QB";
+
+/**
+ * Most TDs by position. WR/RB/TE count every TD they score; QB counts only
+ * rushing TDs — a QB's passing TDs are scored by the receiver. Fullbacks
+ * count as RBs.
+ */
+export const LEADER_POSITIONS: {
+  id: LeaderPosition;
+  label: string;
+  counts: (td: Touchdown) => boolean;
+}[] = [
+  { id: "WR", label: "Wide receivers", counts: (td) => td.position === "WR" },
+  {
+    id: "RB",
+    label: "Running backs",
+    counts: (td) => td.position === "RB" || td.position === "FB",
+  },
+  { id: "TE", label: "Tight ends", counts: (td) => td.position === "TE" },
+  {
+    id: "QB",
+    label: "Quarterbacks (rushing TDs)",
+    counts: (td) => td.position === "QB" && td.kind === "rush",
+  },
+];

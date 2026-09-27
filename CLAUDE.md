@@ -150,7 +150,11 @@ Adding a league later means another SITE/CORE URL pair and checking its core odd
 ### TD scorers (`/lines/touchdowns`)
 Grid of every team (rows) × every week (columns, newest first) listing who scored that team's
 touchdowns, tagged rush/rec/def, with "vs/@ opponent", "Bye" for a missing week, a live dot for
-games in progress, and season leaders. Tapping any scorer highlights all their cells. A sub-nav
+games in progress, and "Most TDs by position" boards (top 5 WR / RB / TE, and QB counting
+**rushing TDs only** — a QB's passing TDs are scored by the receiver; FBs count as RBs; ties past
+5th are summarized as "+N more with K"). Tapping any scorer highlights all their cells. The same
+game-time filter as `/lines` (`SlotFilter.tsx`, shared) narrows the boards, team totals, and grid:
+teams with no game in the slot are hidden, and their other weeks show "—". A sub-nav
 (`LinesNav.tsx`) switches between this and `/lines`; both share the header's "NFL Lines" slot.
 
 Scorers come from the game summary's `scoringPlays` (`lib/touchdowns.ts`). Two non-obvious
@@ -162,6 +166,10 @@ things, both found against real data (every 2026 TD of weeks 1-3, 168 plays):
   Allen …"` → everything before `N Yd`). The summary has no structured scorer field; the core
   plays feed does, but it's ~870KB a game and each athlete is another request. If ESPN changes the
   text format, that regex (`SCORER`) is the one place to fix. Players are keyed by team + name.
+- **Positions come from team rosters** (`.../teams/{id}/roster`, ~350KB each, name → position
+  cached a day per team) — neither the scoring plays nor the summary boxscore carry positions.
+  Looked up on the scoring team's roster, falling back to a league-wide lookup if the name is
+  unique (a player traded since). All 168 TDs of weeks 1-3 matched.
 
 The summary is ~570KB per game, so it's never fetch-cached; the parsed per-game touchdowns of a
 *finished* game are `unstable_cache`d for a day, and fetches run at most 8 at a time
@@ -206,6 +214,7 @@ which needs a key, and a paid plan for past games) — the user decided to skip 
 | `components/TeamLogo.tsx` | Team crest with an initials fallback when ESPN has no logo |
 | `components/LinesBoard.tsx` / `LineCard.tsx` | `/lines` — season summary cards, week tabs, one card per finished game (spread/total/moneyline, open → close, result) |
 | `components/TouchdownBoard.tsx` | `/lines/touchdowns` — team × week grid of TD scorers, season leaders, tap-to-highlight a player |
+| `components/SlotFilter.tsx` | Game-time slot chips (Thursday night, Sunday early/late/night, …) shared by both NFL pages |
 | `components/LinesNav.tsx` | "Betting lines / TD scorers" sub-nav shared by the two NFL pages |
 | `hooks/useLeagueFilter.ts` | `useSyncExternalStore`-backed league selection, persisted to `localStorage` |
 | `hooks/useDisplayPrefs.ts` | Same pattern, for the broadcast/odds display toggles |
