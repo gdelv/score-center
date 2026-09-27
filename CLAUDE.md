@@ -216,6 +216,12 @@ The summary is ~570KB per game, so it's never fetch-cached; the parsed per-game 
 (`mapLimit`) so a cold cache late in the season doesn't fire ~280 at once. Shared NFL plumbing
 (week calendar, week scoreboard, `fetchJson`) lives in `lib/nfl.ts`, used by both NFL pages.
 
+**No anytime-TD odds — ESPN doesn't have them** (checked 2026-09-27, finished and upcoming games).
+The core `odds/100/propBets` feed lists DraftKings' "Anytime Touchdown Scorer" markets per
+athlete id, but `current`/`open` are always empty for TD-scorer props; only yardage-type props
+carry a `target` line, and never a price. Adding TD odds means a new source (e.g. The Odds API,
+which needs a key, and a paid plan for past games) — the user decided to skip it for now.
+
 ## Component map
 | Component | Purpose |
 |-----------|---------|
